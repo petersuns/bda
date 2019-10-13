@@ -53,7 +53,8 @@ main ( int arc, char **argv ) {
   readMatrix(filenameA, a, n);
   readMatrix(filenameB, b, n);
 
-  // TODO: initialize matrix c
+  // DONE: initialize matrix c
+  double* c = (double *) calloc(sizeof(double), n*n);
 
   clock_t begin, end;
   double time_spent;
