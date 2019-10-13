@@ -13,12 +13,12 @@ void multiply_naive(double *a, double *b, double *c, int n) {
 
 /* Multiply n x n matrices a and b  */
 void multiply_blocked(double *a, double *b, double *c, int n, int B) {
-  int i, j, k, i1, j1, k1;
-  for (i = 0; i < n; i+=B)
-    for (j = 0; j < n; j+=B)
-      for(k = 0; k < n; k+=B)
-        /* B x B mini matrix multiplications */
-        // TODO: Complete this method
+//  int i, j, k, i1, j1, k1;
+//  for (i = 0; i < n; i+=B)
+//    for (j = 0; j < n; j+=B)
+//      for(k = 0; k < n; k+=B)
+//        /* B x B mini matrix multiplications */
+//        // TODO: Complete this method
 }
 
 void readMatrix(char* filename, double* matrix, int n) {
