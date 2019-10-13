@@ -69,5 +69,15 @@ main ( int arc, char **argv ) {
   time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
   printf("time: %lf\n", time_spent);
 
+  printf("Output C:\n");
+  for (int i = 0; i < n; i++)
+  {
+    for (int j = 0; j < n; j++)
+    {
+      printf("%lf ", (double) *(c+n*i+j));
+    }
+    printf("\n");
+  }
+
   return 0;
 };
