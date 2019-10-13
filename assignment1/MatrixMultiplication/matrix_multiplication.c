@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 /* Multiply n x n matrices a and b  */
 void multiply_naive(double *a, double *b, double *c, int n) {
@@ -36,7 +37,7 @@ void readMatrix(char* filename, double* matrix, int n) {
 }
 
 
-main ( int arc, char **argv ) {
+int main ( int arc, char **argv ) {
   char* method = argv[1];
   int n = atoi(argv[2]);
   char *filenameA = argv[3];
