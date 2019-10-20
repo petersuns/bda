@@ -96,9 +96,7 @@ find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
             int count = 0;
             for (size_t d = 0; d < ds->num_documents; ++d)
             {
-                int term1_appears_in_doc = document_has_word(ds, d, t1);
-                int term2_appears_in_doc = document_has_word(ds, d, t2);
-                if (term1_appears_in_doc && term2_appears_in_doc)
+                if (document_has_word(ds, d, t1) && document_has_word(ds, d, t2))
                 {
                     ++count;
                 }
