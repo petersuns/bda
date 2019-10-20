@@ -86,26 +86,48 @@ find_pairs_naive_indexes(const dataset *ds, output_pairs *op, int threshold)
 void
 find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 {
-    // TODO implement a quick `find_pairs_quick_bitmaps` procedure using
-    // `get_term_bitmap`.
+	// TODO implement a quick `find_pairs_quick_bitmaps` procedure using
+	// `get_term_bitmap`.
 
-    for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
-    {
-        for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
-        {
-            int count = 0;
-            for (size_t d = 0; d < ds->num_documents; ++d)
-            {
-                if (document_has_word(ds, d, t1) && document_has_word(ds, d, t2))
-                {
-                    ++count;
-                }
-            }
-            if (count >= threshold)
-                push_output_pair(op, t1, t2, count);
-        }
-    }
-}
+#if 1
+	for (size_t d = 0; d < ds->num_documents; ++d)
+	{
+		for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+		{
+			if (document_has_word(ds, d, t1))
+			{
+				for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
+				{
+					int count = 0;
+					if (document_has_word(ds, d, t2))
+					{
+						++count;
+					}
+					if (count >= threshold)
+						push_output_pair(op, t1, t2, count);
+				}
+			}
+		}
+	}
+#else
+		for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+		{
+			for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
+			{
+				int count = 0;
+				for (size_t d = 0; d < ds->num_documents; ++d)
+				{
+					if (document_has_word(ds, d, t1) && document_has_word(ds, d, t2))
+					{
+						++count;
+					}
+				}
+				if (count >= threshold)
+					push_output_pair(op, t1, t2, count);
+			}
+		}
+#endif
+	}
 
 void
 find_pairs_quick_indexes(const dataset *ds, output_pairs *op, int threshold)
