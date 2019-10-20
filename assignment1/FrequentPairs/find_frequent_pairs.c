@@ -90,7 +90,7 @@ find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 	// `get_term_bitmap`.
 	//
 	
-	printf("FYI, there are %d documents and %d words in the dictionary.\n",
+	printf("FYI, there are %ld documents and %ld words in the dictionary.\n",
 			ds->num_documents,
 			ds->vocab_size);
 
