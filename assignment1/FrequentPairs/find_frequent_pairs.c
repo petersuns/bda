@@ -28,29 +28,57 @@ document_has_word(const dataset *ds, size_t doc_index, size_t voc_index)
 }
 
 void
+test_thresholds_naive_bitmaps(const dataset *ds, output_pairs *op, int threshold)
+{
+	// This is an example implementation. You don't need to change this, you
+	// should implement `find_pairs_quick_*`.
+
+	int words_remove_count = 0;
+	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+	{
+		int count = 0;
+		for (size_t d = 0; d < ds->num_documents; ++d)
+		{
+			int term1_appears_in_doc = document_has_word(ds, d, t1);
+			if (term1_appears_in_doc)
+			{
+				++count;
+			}
+		}
+		if (count < threshold)
+		{
+			words_remove_count++;
+		}
+	}
+
+	printf("We can remove %d words for threshold %d.\n", words_remove_count, threshold);
+}
+
+void
 find_pairs_naive_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 {
-    // This is an example implementation. You don't need to change this, you
-    // should implement `find_pairs_quick_*`.
+	test_thresholds_naive_bitmaps(ds, op, threshold);
+    //// This is an example implementation. You don't need to change this, you
+    //// should implement `find_pairs_quick_*`.
 
-    for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
-    {
-        for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
-        {
-            int count = 0;
-            for (size_t d = 0; d < ds->num_documents; ++d)
-            {
-                int term1_appears_in_doc = document_has_word(ds, d, t1);
-                int term2_appears_in_doc = document_has_word(ds, d, t2);
-                if (term1_appears_in_doc && term2_appears_in_doc)
-                {
-                    ++count;
-                }
-            }
-            if (count >= threshold)
-                push_output_pair(op, t1, t2, count);
-        }
-    }
+    //for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+    //{
+    //    for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
+    //    {
+    //        int count = 0;
+    //        for (size_t d = 0; d < ds->num_documents; ++d)
+    //        {
+    //            int term1_appears_in_doc = document_has_word(ds, d, t1);
+    //            int term2_appears_in_doc = document_has_word(ds, d, t2);
+    //            if (term1_appears_in_doc && term2_appears_in_doc)
+    //            {
+    //                ++count;
+    //            }
+    //        }
+    //        if (count >= threshold)
+    //            push_output_pair(op, t1, t2, count);
+    //    }
+    //}
 }
 
 
@@ -215,6 +243,81 @@ find_pairs_quick_bitmaps3(const dataset *ds, output_pairs *op, int threshold)
 		}
 #endif
 	}
+
+void
+find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
+{
+	printf("FYI, there are %ld documents and %ld words in the dictionary.\n",
+			ds->num_documents,
+			ds->vocab_size);
+
+	int* words_keep = calloc(ds->vocab_size, sizeof(int));
+	int words_remove_count = 0;
+	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+	{
+		int count = 0;
+		for (size_t d = 0; d < ds->num_documents; ++d)
+		{
+			int term1_appears_in_doc = document_has_word(ds, d, t1);
+			if (term1_appears_in_doc)
+			{
+				++count;
+			}
+		}
+		if (count < threshold)
+		{
+			words_remove_count++;
+		}
+		else
+		{
+			(*words_keep)++;
+		}
+		words_keep++;
+	}
+	words_keep -= ds->vocab_size; //rewind
+
+	printf("We can remove %d words for threshold %d.\n", words_remove_count, threshold);
+#if 0
+	printf("Map of the words we can keep:\n");
+
+	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+	{
+		printf("%d ", *words_keep);
+		words_keep++;
+	}
+	printf("\n");
+
+	words_keep -= ds->vocab_size; //rewind
+#endif
+
+	// Naive algorithm, updated with map of words.
+	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+	{
+		if (words_keep[t1] == 0)
+		{
+			continue;
+		}
+		for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
+		{
+			if (words_keep[t2] == 0)
+			{
+				continue;
+			}
+			int count = 0;
+			for (size_t d = 0; d < ds->num_documents; ++d)
+			{
+				int term1_appears_in_doc = document_has_word(ds, d, t1);
+				int term2_appears_in_doc = document_has_word(ds, d, t2);
+				if (term1_appears_in_doc && term2_appears_in_doc)
+				{
+					++count;
+				}
+			}
+			if (count >= threshold)
+				push_output_pair(op, t1, t2, count);
+		}
+	}
+}
 
 void
 find_pairs_quick_indexes(const dataset *ds, output_pairs *op, int threshold)
