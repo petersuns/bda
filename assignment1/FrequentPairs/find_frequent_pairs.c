@@ -245,11 +245,11 @@ find_pairs_quick_bitmaps3(const dataset *ds, output_pairs *op, int threshold)
 	}
 
 void
-find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
+find_pairs_quick_bitmaps4(const dataset *ds, output_pairs *op, int threshold)
 {
-	printf("FYI, there are %ld documents and %ld words in the dictionary.\n",
-			ds->num_documents,
-			ds->vocab_size);
+	//printf("FYI, there are %ld documents and %ld words in the dictionary.\n",
+	//		ds->num_documents,
+	//		ds->vocab_size);
 
 	int* words_keep = calloc(ds->vocab_size, sizeof(int));
 	int words_remove_count = 0;
@@ -276,7 +276,7 @@ find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 	}
 	words_keep -= ds->vocab_size; //rewind
 
-	printf("We can remove %d words for threshold %d.\n", words_remove_count, threshold);
+	//printf("We can remove %d words for threshold %d.\n", words_remove_count, threshold);
 #if 0
 	printf("Map of the words we can keep:\n");
 
