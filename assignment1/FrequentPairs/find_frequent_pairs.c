@@ -245,7 +245,8 @@ find_pairs_quick_bitmaps3(const dataset *ds, output_pairs *op, int threshold)
 	}
 
 void
-find_pairs_quick_bitmaps4(const dataset *ds, output_pairs *op, int threshold)
+//find_pairs_quick_bitmaps4(const dataset *ds, output_pairs *op, int threshold)
+find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 {
 	//printf("FYI, there are %ld documents and %ld words in the dictionary.\n",
 	//		ds->num_documents,
