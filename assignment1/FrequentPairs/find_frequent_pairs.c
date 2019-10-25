@@ -322,6 +322,39 @@ find_pairs_quick_bitmaps4(const dataset *ds, output_pairs *op, int threshold)
 void
 find_pairs_quick_indexes(const dataset *ds, output_pairs *op, int threshold)
 {
-    // TODO implement a quick `find_pairs_quick_indexes` procedure using
-    // `get_term_indexes`.
+	// TODO implement a quick `find_pairs_quick_indexes` procedure using
+	// `get_term_indexes`.
+
+	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+	{
+		const index_list *il1 = get_term_indexes(ds, t1);
+
+		if (il1->len < threshold)
+		{
+			continue;
+		}
+
+		for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
+		{
+			const index_list *il2 = get_term_indexes(ds, t2);
+
+			if (il2->len < threshold)
+			{
+				continue;
+			}
+
+			int count = 0;
+			size_t i1 = 0, i2 = 0;
+			for (; i1 < il1->len && i2 < il2->len;)
+			{
+				size_t x1 = il1->indexes[i1], x2 = il2->indexes[i2];
+				if (x1 == x2) { ++count; ++i1; ++i2; }
+				else if (x1 < x2) { ++i1; }
+				else { ++i2; }
+			}
+
+			if (count >= threshold)
+				push_output_pair(op, t1, t2, count);
+		}
+	}
 }
