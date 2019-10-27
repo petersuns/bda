@@ -44,7 +44,7 @@ uint8_t count_bits_one(uint64_t word)
 uint32_t
 all_documents_get_word_count(const dataset *ds, size_t voc_index)
 {
-    uint64_t *column_ptr = get_term_bitmap(ds, voc_index);
+    uint64_t* column_ptr = (uint64_t*) get_term_bitmap(ds, voc_index);
     size_t column_size_words = get_term_bitmap_len(ds) / sizeof(*column_ptr);
     uint32_t count = 0;
 
@@ -58,7 +58,7 @@ all_documents_get_word_count(const dataset *ds, size_t voc_index)
     return count;
 }
 
-all_documents_get_word_pairs_count(const dataset *ds, uint64_t* column_ptr1, uint64_t* column_ptr2)
+uint32_t all_documents_get_word_pairs_count(const dataset *ds, uint64_t* column_ptr1, uint64_t* column_ptr2)
 {
     size_t column_size_words = get_term_bitmap_len(ds) / sizeof(*column_ptr1);
     uint64_t count = 0;
@@ -72,57 +72,29 @@ all_documents_get_word_pairs_count(const dataset *ds, uint64_t* column_ptr1, uin
 }
 
 void
-test_thresholds_naive_bitmaps(const dataset *ds, output_pairs *op, int threshold)
-{
-	// This is an example implementation. You don't need to change this, you
-	// should implement `find_pairs_quick_*`.
-
-	int words_remove_count = 0;
-	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
-	{
-		int count = 0;
-		for (size_t d = 0; d < ds->num_documents; ++d)
-		{
-			int term1_appears_in_doc = document_has_word(ds, d, t1);
-			if (term1_appears_in_doc)
-			{
-				++count;
-			}
-		}
-		if (count < threshold)
-		{
-			words_remove_count++;
-		}
-	}
-
-	printf("We can remove %d words for threshold %d.\n", words_remove_count, threshold);
-}
-
-void
 find_pairs_naive_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 {
-	test_thresholds_naive_bitmaps(ds, op, threshold);
-    //// This is an example implementation. You don't need to change this, you
-    //// should implement `find_pairs_quick_*`.
+    // This is an example implementation. You don't need to change this, you
+    // should implement `find_pairs_quick_*`.
 
-    //for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
-    //{
-    //    for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
-    //    {
-    //        int count = 0;
-    //        for (size_t d = 0; d < ds->num_documents; ++d)
-    //        {
-    //            int term1_appears_in_doc = document_has_word(ds, d, t1);
-    //            int term2_appears_in_doc = document_has_word(ds, d, t2);
-    //            if (term1_appears_in_doc && term2_appears_in_doc)
-    //            {
-    //                ++count;
-    //            }
-    //        }
-    //        if (count >= threshold)
-    //            push_output_pair(op, t1, t2, count);
-    //    }
-    //}
+    for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
+    {
+        for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
+        {
+            int count = 0;
+            for (size_t d = 0; d < ds->num_documents; ++d)
+            {
+                int term1_appears_in_doc = document_has_word(ds, d, t1);
+                int term2_appears_in_doc = document_has_word(ds, d, t2);
+                if (term1_appears_in_doc && term2_appears_in_doc)
+                {
+                    ++count;
+                }
+            }
+            if (count >= threshold)
+                push_output_pair(op, t1, t2, count);
+        }
+    }
 }
 
 
@@ -373,27 +345,14 @@ find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 	//		ds->vocab_size);
 
 	int* words_keep = calloc(ds->vocab_size, sizeof(int));
-	int words_remove_count = 0;
 	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
 	{
-		uint32_t count = all_documents_get_word_count(ds, t1);
+		int count = all_documents_get_word_count(ds, t1);
 		if (count >= threshold)
 		{
 			words_keep[t1]++;
 		}
 	}
-
-#if 0
-	printf("We can remove %d words for threshold %d.\n", words_remove_count, threshold);
-	printf("Map of the words we can keep:\n");
-
-	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
-	{
-		printf("%d ", *words_keep);
-		words_keep++;
-	}
-	printf("\n");
-#endif
 
 	//Now we look at word pairs.
 	for (size_t t1 = 0; t1 < ds->vocab_size; ++t1)
@@ -402,7 +361,7 @@ find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 		{
 			continue;
 		}
-		uint64_t* column_ptr1 = get_term_bitmap(ds, t1);
+		uint64_t* column_ptr1 = (uint64_t*) get_term_bitmap(ds, t1);
 
 		for (size_t t2 = t1+1; t2 < ds->vocab_size; ++t2)
 		{
@@ -410,7 +369,7 @@ find_pairs_quick_bitmaps(const dataset *ds, output_pairs *op, int threshold)
 			{
 				continue;
 			}
-			uint64_t* column_ptr2 = get_term_bitmap(ds, t2);
+			uint64_t* column_ptr2 = (uint64_t*) get_term_bitmap(ds, t2);
 
 			int count = all_documents_get_word_pairs_count(ds, column_ptr1, column_ptr2);
 
@@ -431,7 +390,7 @@ find_pairs_quick_indexes(const dataset *ds, output_pairs *op, int threshold)
 	{
 		const index_list *il1 = get_term_indexes(ds, t1);
 
-		if (il1->len < threshold)
+		if (il1->len < (size_t) threshold)
 		{
 			continue;
 		}
@@ -440,7 +399,7 @@ find_pairs_quick_indexes(const dataset *ds, output_pairs *op, int threshold)
 		{
 			const index_list *il2 = get_term_indexes(ds, t2);
 
-			if (il2->len < threshold)
+			if (il2->len < (size_t) threshold)
 			{
 				continue;
 			}
