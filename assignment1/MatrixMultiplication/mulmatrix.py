@@ -116,4 +116,5 @@ for block_size in plot_points_by_block_size:
             plot_points_by_block_size[block_size][1],
             label="Block size {}".format(block_size))
 plt.legend()
+plt.savefig("graph.png")
 plt.show()
