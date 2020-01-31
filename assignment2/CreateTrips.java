@@ -16,45 +16,67 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 public class CreateTrips {
 
-    public static class SegmentMapper extends Mapper<Object, Text, Text, IntWritable> {
+    public static class SegmentMapper extends Mapper<Object, Text, Text, Text> {
 
-        private final static IntWritable one = new IntWritable(1);
-        private Text segment = new Text();
+        //private final static IntWritable one = new IntWritable(1);
+        // String[] elements = line.split(",");
+        //private Text segment = new Text();
+        private Text txtTaxiNumber = new Text();
+        private Text txtOtherInfo = new Text();
 
-        // private Pattern punctuationPattern = Pattern.compile("\\p{P}");
+        // private Pattern punctuationPattern = Pattern.compile(",");
         // private Pattern wordPattern = Pattern.compile("[a-z]+");
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            StringTokenizer itr = new StringTokenizer(value.toString());
+            String line = value.toString();
+            StringTokenizer itr = new StringTokenizer(line,",");
+            
+            String taxiNumber = itr.nextToken();
+            String otherInfo = "";
 
-            while (itr.hasMoreTokens()) {
-                String token = itr.nextToken(); // .toLowerCase(); // convert words to lowercase
-                segment.set(token);
-                context.write(segment, one);
-                // token = punctuationPattern.matcher(token).replaceAll(""); // remove
-                // punctuation
-                // if (wordPattern.matcher(token).matches()) { // remove non-latin-words
-                // word.set(token);
-                // context.write(word, one);
-                // }
-
+            for (int i = 0; i < 8; i++) {
+                otherInfo += itr.nextToken();
             }
-        }
-    }
 
-    public static class DummyReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+            txtTaxiNumber.set(taxiNumber);
+            txtOtherInfo.set(otherInfo);
+
+            //while (itr.hasMoreTokens()) {
+                //String token = itr.nextToken(); // .toLowerCase(); // convert words to lowercase
+                // token = punctuationPattern.matcher(token).replaceAll(" "); // remove punctuation
+                //segment.set(token);
+                //context.write(txtTaxiNumber, txtOtherInfo);
+                //IntWritable one = new IntWritable(1);
+                context.write(txtTaxiNumber, txtOtherInfo);
+                // if (wordPattern.matcher(token).matches()) { // remove non-latin-words
+                // segment.set(token);
+                // context.write(segment, one);
+                // }
+            // }
+
+        //     for (String word : line.split(",")){ 
+        //         if (word.length() > 0)
+        //         { 
+        //             output.collect(new Text(word), new IntWritable(1)); 
+        //         } 
+        // } 
+    } 
+} 
+        
+    
+
+    public static class DummyReducer extends Reducer<Text, Text, Text, IntWritable> {
 
         private IntWritable result = new IntWritable();
 
         public void reduce(Text key, Iterable<IntWritable> values, Context context)
                 throws IOException, InterruptedException {
             int sum = 0;
-            // for (IntWritable val : values) {
-            // sum += val.get();
-            // }
+            for (IntWritable val : values) {
+            sum += val.get();
+            }
 
-            result.set(sum);
-            context.write(key, result);
+            context.write(key, new IntWritable(sum));
         }
     }
 
@@ -67,7 +89,8 @@ public class CreateTrips {
         job.setMapperClass(SegmentMapper.class);
         job.setReducerClass(DummyReducer.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
+        //job.setOutputValueClass(IntWritable.class);
+        job.setOutputValueClass(Text.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
         FileInputFormat.addInputPath(job, input);
