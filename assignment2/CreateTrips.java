@@ -29,12 +29,20 @@ public class CreateTrips {
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
-            StringTokenizer itr = new StringTokenizer(line,",");
+            StringTokenizer itr = new StringTokenizer(line,",'");
             
-            String taxiNumber = itr.nextToken();
-            String otherInfo = "";
+            // String taxiNumber = itr.nextToken();
+            String taxiNumber = " ";
 
-            for (int i = 0; i < 8; i++) {
+            String otherInfo = " ";
+
+            for (int i = 0; i < 2; i++) {
+                taxiNumber += " ";
+                taxiNumber += itr.nextToken();
+            }
+
+            for (int i = 0; i < 7; i++) {
+                otherInfo += " ";
                 otherInfo += itr.nextToken();
             }
 
