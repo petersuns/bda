@@ -31,7 +31,7 @@ public class CreateTrips {
 
             otherInfo += startTimestamp;
             for (int i = 0; i < 7; i++) {
-                otherInfo += " " + itr.nextToken();
+                otherInfo += "," + itr.nextToken();
             }
 
             context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
@@ -58,18 +58,75 @@ public class CreateTrips {
         }
     }
 
-    public static class DummyReducer extends Reducer<TextPair, Text, TextPair, IntWritable> {
-        
-        private IntWritable result = new IntWritable();
+    public static class DummyReducer extends Reducer<TextPair, Text, Text, Text> {
 
-        public void reduce(TextPair key, Iterable<IntWritable> values, Context context)
+        public void reduce(TextPair key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
-            int sum = 0;
-            for (IntWritable val : values) {
-                sum += val.get();
-            }
+            
+            Boolean firstSegment = true;
+            Boolean tripRecoding = false;
+            String tripStartLongitude = "";
+            String tripStartLatitude = "";
+            String tripStopLongitude = "";
+            String tripStopLatitude = "";
 
-            context.write(key, new IntWritable(sum));
+            for (Text value : values) {
+                String line = value.toString();
+                StringTokenizer itr = new StringTokenizer(line, ",'");
+
+                String startTimestamp = itr.nextToken();
+                String startLatitude = itr.nextToken();
+                String startLongitude = itr.nextToken();
+                String startState = itr.nextToken();
+                String stopTimestamp = itr.nextToken();
+                String stopLatitude = itr.nextToken();
+                String stopLongitude = itr.nextToken();
+                String stopState = itr.nextToken();
+
+                //if (firstSegment) {
+                //    tripRecoding = stopState.equals("M");
+                //    firstSegment = false;
+                //}
+                
+                if (tripRecoding) {
+                    if (startState.equals(stopState)) {
+                        // taxi keeps driving with a passenger...
+                        continue;
+                    } else if (startState == "E" && stopState == "M") {
+                        // cannot happen
+                        context.write(new Text("ERROR"), new Text("1"));
+                    } else if (startState.equals("M") && stopState.equals("E")) {
+                        // End the current trip, record the stop position and emit output key-value.
+                        tripStopLatitude = stopLatitude;
+                        tripStopLongitude = stopLongitude;
+                        tripRecoding = false;
+                        context.write(new Text("Trip by taxi " + key.getFirst()),
+                        new Text(
+                        "from " + tripStartLatitude + " " + tripStartLongitude +
+                        " to " + tripStopLatitude + " " + tripStopLongitude)
+                        );
+                    } else {
+                        // cannot happen
+                    }
+                } else {
+                    if (startState.equals(stopState)) {
+                        // taxi still empty, waiting for passenger...
+                        continue;
+                    } else if (startState.equals("E") && stopState.equals("M")) {
+                        // Start a new trip. Record the start position.
+                        tripStartLatitude = startLatitude;
+                        tripStartLongitude = startLongitude;
+                        tripRecoding = true;
+                    } else if (startState.equals("M") && stopState.equals("E")) {
+                        // cannot happen
+                        context.write(new Text("ERROR in taxi " + key.getFirst() +
+                        "start time " + startTimestamp), new Text("3"));
+                    } else {
+                        // cannot happen
+                        context.write(new Text("ERROR"), new Text("4"));
+                    }
+                }
+            }
         }
     }
 
