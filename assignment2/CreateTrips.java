@@ -7,81 +7,66 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.Partitioner;
 
 public class CreateTrips {
 
-    public static class SegmentMapper extends Mapper<Object, Text, Text, Text> {
-
-        //private final static IntWritable one = new IntWritable(1);
-        // String[] elements = line.split(",");
-        //private Text segment = new Text();
-        private Text txtTaxiNumber = new Text();
-        private Text txtOtherInfo = new Text();
-
-        // private Pattern punctuationPattern = Pattern.compile(",");
-        // private Pattern wordPattern = Pattern.compile("[a-z]+");
-
+    public static class SegmentMapper extends Mapper<Object, Text, TextPair, Text> {
+        
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
-            StringTokenizer itr = new StringTokenizer(line,",'");
-            
-            // String taxiNumber = itr.nextToken();
-            String taxiNumber = " ";
+            StringTokenizer itr = new StringTokenizer(line, ",'");
 
-            String otherInfo = " ";
+            String taxiNumber = itr.nextToken();
+            String startTimestamp = itr.nextToken();
+            String otherInfo = "";
 
-            for (int i = 0; i < 2; i++) {
-                taxiNumber += " ";
-                taxiNumber += itr.nextToken();
-            }
-
+            otherInfo += startTimestamp;
             for (int i = 0; i < 7; i++) {
-                otherInfo += " ";
-                otherInfo += itr.nextToken();
+                otherInfo += " " + itr.nextToken();
             }
 
-            txtTaxiNumber.set(taxiNumber);
-            txtOtherInfo.set(otherInfo);
+            context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
+        }
+    }
 
-            //while (itr.hasMoreTokens()) {
-                //String token = itr.nextToken(); // .toLowerCase(); // convert words to lowercase
-                // token = punctuationPattern.matcher(token).replaceAll(" "); // remove punctuation
-                //segment.set(token);
-                //context.write(txtTaxiNumber, txtOtherInfo);
-                //IntWritable one = new IntWritable(1);
-                context.write(txtTaxiNumber, txtOtherInfo);
-                // if (wordPattern.matcher(token).matches()) { // remove non-latin-words
-                // segment.set(token);
-                // context.write(segment, one);
-                // }
-            // }
-
-        //     for (String word : line.split(",")){ 
-        //         if (word.length() > 0)
-        //         { 
-        //             output.collect(new Text(word), new IntWritable(1)); 
-        //         } 
-        // } 
-    } 
-} 
+    public static class NaturalKeyPartitioner extends Partitioner<TextPair, Text> {
         
-    
+        public int getPartition(TextPair key, Text value, int numPartitions) {
+            return Math.abs(key.getFirst().hashCode() & Integer.MAX_VALUE) % numPartitions;
+        }
+    }
 
-    public static class DummyReducer extends Reducer<Text, Text, Text, IntWritable> {
+    public static class GroupComparator extends WritableComparator {
+        
+        protected GroupComparator() {
+            super(TextPair.class, true);
+        }
 
+        public int compare(WritableComparable wc1, WritableComparable wc2) {
+            TextPair tp1 = (TextPair) wc1;
+            TextPair tp2 = (TextPair) wc2;
+            return tp1.getFirst().compareTo(tp2.getFirst());
+        }
+    }
+
+    public static class DummyReducer extends Reducer<TextPair, Text, TextPair, IntWritable> {
+        
         private IntWritable result = new IntWritable();
 
-        public void reduce(Text key, Iterable<IntWritable> values, Context context)
+        public void reduce(TextPair key, Iterable<IntWritable> values, Context context)
                 throws IOException, InterruptedException {
             int sum = 0;
             for (IntWritable val : values) {
-            sum += val.get();
+                sum += val.get();
             }
 
             context.write(key, new IntWritable(sum));
@@ -95,9 +80,10 @@ public class CreateTrips {
         Job job = Job.getInstance(conf, "word count");
         job.setJarByClass(CreateTrips.class);
         job.setMapperClass(SegmentMapper.class);
+        job.setPartitionerClass(NaturalKeyPartitioner.class);
+        job.setGroupingComparatorClass(GroupComparator.class);
         job.setReducerClass(DummyReducer.class);
-        job.setOutputKeyClass(Text.class);
-        //job.setOutputValueClass(IntWritable.class);
+        job.setOutputKeyClass(TextPair.class);
         job.setOutputValueClass(Text.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
