@@ -64,7 +64,7 @@ public class CreateTrips {
                 throws IOException, InterruptedException {
             
             Boolean firstSegment = true;
-            Boolean tripRecoding = false;
+            Boolean tripRecoding = true;
             String tripStartLongitude = "";
             String tripStartLatitude = "";
             String tripStopLongitude = "";
@@ -82,15 +82,21 @@ public class CreateTrips {
                 String stopLatitude = itr.nextToken();
                 String stopLongitude = itr.nextToken();
                 String stopState = itr.nextToken();
-
-                //if (firstSegment) {
-                //    tripRecoding = stopState.equals("M");
-                //    firstSegment = false;
-                //}
                 
+                if (firstSegment) {
+                   if (!(startState.equals("E") && stopState.equals("M"))) {
+                       continue;
+                   } else {
+                        firstSegment = false;
+                        tripStartLatitude = startLatitude;
+                        tripStartLongitude = startLongitude;
+                        continue;
+                   }
+                }
+
                 if (tripRecoding) {
                     if (startState.equals(stopState)) {
-                        // taxi keeps driving with a passenger...
+                        // taxi keeps driving with or without a passenger...
                         continue;
                     } else if (startState == "E" && stopState == "M") {
                         // cannot happen
@@ -100,7 +106,7 @@ public class CreateTrips {
                         tripStopLatitude = stopLatitude;
                         tripStopLongitude = stopLongitude;
                         tripRecoding = false;
-                        context.write(new Text("Trip by taxi " + key.getFirst()),
+                        context.write(new Text("taxi: " + key.getFirst()),
                         new Text(
                         "from " + tripStartLatitude + " " + tripStartLongitude +
                         " to " + tripStopLatitude + " " + tripStopLongitude)
