@@ -76,63 +76,96 @@ public class CreateTrips {
             Double tripEndLatitude = 0.0;
             String tripEndTime = "";
             String tripEndState = "";
+
             Double distance = 0.0;
+            Double distance_two = 0.0;
+            boolean airport_trip = false;
 
 
 
             for (Text value : values) {
                 String line = value.toString();
                 StringTokenizer itr = new StringTokenizer(line, ",'");
-
                 String startTimestamp = itr.nextToken();
-                String startLatitude = itr.nextToken();
-                String startLongitude = itr.nextToken();
+                // String startLatitude = itr.nextToken();
+                double startLatitude = Double.parseDouble(itr.nextToken());
+                // String startLongitude = itr.nextToken();
+                double startLongitude = Double.parseDouble(itr.nextToken());
                 String startState = itr.nextToken();
-
                 String endTimestamp = itr.nextToken();
-                String endLatitude = itr.nextToken();
-                String endLongitude = itr.nextToken();
+                // String endLatitude = itr.nextToken();
+                double endLatitude = Double.parseDouble(itr.nextToken());
+                // String endLongitude = itr.nextToken();
+                double endLongitude = Double.parseDouble(itr.nextToken());
                 String endState = itr.nextToken();
+
+        
                 
                 if (firstSegment) {
                    if (!(startState.equals("E") && endState.equals("M"))) {
                        continue;
                    } else {
                         firstSegment = false;
-
                         tripStartTime = startTimestamp;
-                        tripStartLatitude = Double.parseDouble(startLatitude);
-                        tripStartLongitude = Double.parseDouble(startLongitude);
+                        tripStartLatitude = startLatitude;
+                        tripStartLongitude = startLongitude;
                         tripStartState = startState;
+
+                        distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
                         continue;
                    }
                 }
+                // tripStartTime = startTimestamp;
+                // tripStartLatitude = Double.parseDouble(startLatitude);
+                // tripStartLongitude = Double.parseDouble(startLongitude);
+                // tripStartState = startState;
+                // tripEndTime = endTimestamp;
+                // tripEndLatitude = Double.parseDouble(endLatitude);
+                // tripEndLongitude = Double.parseDouble(endLongitude);
+                // tripEndState = endState;
+                // context.write(new Text("taxi: " + key.getFirst()),
+                //         new Text(
+                //             tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                //             tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+distance)
+                //         );
 
                 if (tripRecoding) {
                     if (startState.equals(endState)) {
                         // taxi keeps driving with or without a passenger...
+                        // tripStartLatitude = startLatitude;
+                        // tripStartLongitude = startLongitude;
+                        // tripEndLatitude = startLatitude;
+                        // tripEndLongitude = startLongitude;
+
+                        distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
                         continue;
                     } else if (startState == "E" && endState == "M") {
                         // cannot happen
                         context.write(new Text("ERROR"), new Text("1"));
                     } else if (startState.equals("M") && endState.equals("E")) {
                         // End the current trip, record the stop position and emit output key-value.
-                        tripEndTime = endTimestamp;
-                        tripEndLatitude = Double.parseDouble(endLatitude);
-                        tripEndLongitude = Double.parseDouble(endLongitude);
-                        tripEndState = endState;
+                        tripEndTime = startTimestamp;
+                        tripEndLatitude = startLatitude;
+                        tripEndLongitude = startLongitude;
+                        tripEndState = startState;
                         tripRecoding = false;
-                        // distance = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                        distance_two = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                        airport_trip = (airport_1km( tripStartLatitude, tripStartLongitude) || airport_1km(tripEndLatitude, tripEndLongitude));
                         // distance = distanceSimplify(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
 
-                        
-                        context.write(new Text("taxi: " + key.getFirst()),
-                        new Text(
-                            tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
-                            tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+distance)
-                        );
+                        if(airport_trip){
+                            context.write(new Text("taxi: " + key.getFirst()),
+                            new Text(
+                                tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                                tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+distance+" "+distance_two+" "+airport_trip)
+                            );
+                        }
+                        distance=0.0;
+ 
                     } else {
                         // cannot happen
+                        context.write(new Text("ERROR"), new Text("5"));
+
                     }
                 } else {
                     if (startState.equals(endState)) {
@@ -141,10 +174,13 @@ public class CreateTrips {
                     } else if (startState.equals("E") && endState.equals("M")) {
                         // Start a new trip. Record the start position.
                         tripStartTime = startTimestamp;
-                        tripStartLatitude = Double.parseDouble(startLatitude);;
-                        tripStartLongitude = Double.parseDouble(startLongitude);
+                        tripStartLatitude = startLatitude;
+                        tripStartLongitude = startLongitude;
                         tripStartState = startState;
                         tripRecoding = true;
+
+                        distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+
                     } else if (startState.equals("M") && endState.equals("E")) {
                         // cannot happen
                         context.write(new Text("ERROR in taxi " + key.getFirst() +
@@ -177,7 +213,7 @@ public class CreateTrips {
         return job;
     }
 
-    public static final double R = 6372.8; // In kilometers
+    public static final double R = 6371; // In kilometers
     public static double haversine(double lat1, double lon1, double lat2, double lon2) {
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
@@ -195,6 +231,20 @@ public class CreateTrips {
         double Lx=Math.toRadians(dx)*6367000.0*Math.cos(Math.toRadians(b));// 东西距离
         double Ly=6367000.0*Math.toRadians(dy);// 南北距离
         return Math.sqrt(Lx *Lx+Ly*Ly);// 用平面的矩形对角距离公式计算总距离
+    }
+    public static final double airport_lat = 37.62131; 
+    public static final double airport_lon = -122.37896; 
+    public static final double diff_lat = 0.00909;
+    public static final double diff_lon = 0.01136;
+    public static final double airport_lat_plus_1km = airport_lat + diff_lat;
+    public static final double airport_lat_minus_1km = airport_lat - diff_lat;
+    public static final double airport_lon_plus_1km = airport_lon + diff_lon;
+    public static final double airport_lon_minus_1km = airport_lon - diff_lon;
+
+
+    public static boolean airport_1km(double lat1, double lon1) {
+        return (lat1 < airport_lat_plus_1km && lat1 > airport_lat_minus_1km &&
+                lon1 < airport_lon_plus_1km && lon1 > airport_lon_minus_1km);
     }
     public static void main(String[] args) throws Exception {
         Path input = new Path(args[0]);
