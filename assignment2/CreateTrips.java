@@ -16,6 +16,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.Partitioner;
+// import Haversine;
 
 public class CreateTrips {
 
@@ -65,10 +66,19 @@ public class CreateTrips {
             
             Boolean firstSegment = true;
             Boolean tripRecoding = true;
-            String tripStartLongitude = "";
-            String tripStartLatitude = "";
-            String tripStopLongitude = "";
-            String tripStopLatitude = "";
+
+            String tripStartTime = "";
+            Double tripStartLongitude = 0.0;
+            Double tripStartLatitude = 0.0;
+            String tripStartState = "";
+
+            Double tripEndLongitude = 0.0;
+            Double tripEndLatitude = 0.0;
+            String tripEndTime = "";
+            String tripEndState = "";
+            Double distance = 0.0;
+
+
 
             for (Text value : values) {
                 String line = value.toString();
@@ -78,52 +88,64 @@ public class CreateTrips {
                 String startLatitude = itr.nextToken();
                 String startLongitude = itr.nextToken();
                 String startState = itr.nextToken();
-                String stopTimestamp = itr.nextToken();
-                String stopLatitude = itr.nextToken();
-                String stopLongitude = itr.nextToken();
-                String stopState = itr.nextToken();
+
+                String endTimestamp = itr.nextToken();
+                String endLatitude = itr.nextToken();
+                String endLongitude = itr.nextToken();
+                String endState = itr.nextToken();
                 
                 if (firstSegment) {
-                   if (!(startState.equals("E") && stopState.equals("M"))) {
+                   if (!(startState.equals("E") && endState.equals("M"))) {
                        continue;
                    } else {
                         firstSegment = false;
-                        tripStartLatitude = startLatitude;
-                        tripStartLongitude = startLongitude;
+
+                        tripStartTime = startTimestamp;
+                        tripStartLatitude = Double.parseDouble(startLatitude);
+                        tripStartLongitude = Double.parseDouble(startLongitude);
+                        tripStartState = startState;
                         continue;
                    }
                 }
 
                 if (tripRecoding) {
-                    if (startState.equals(stopState)) {
+                    if (startState.equals(endState)) {
                         // taxi keeps driving with or without a passenger...
                         continue;
-                    } else if (startState == "E" && stopState == "M") {
+                    } else if (startState == "E" && endState == "M") {
                         // cannot happen
                         context.write(new Text("ERROR"), new Text("1"));
-                    } else if (startState.equals("M") && stopState.equals("E")) {
+                    } else if (startState.equals("M") && endState.equals("E")) {
                         // End the current trip, record the stop position and emit output key-value.
-                        tripStopLatitude = stopLatitude;
-                        tripStopLongitude = stopLongitude;
+                        tripEndTime = endTimestamp;
+                        tripEndLatitude = Double.parseDouble(endLatitude);
+                        tripEndLongitude = Double.parseDouble(endLongitude);
+                        tripEndState = endState;
                         tripRecoding = false;
+                        // distance = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                        // distance = distanceSimplify(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+
+                        
                         context.write(new Text("taxi: " + key.getFirst()),
                         new Text(
-                        "from " + tripStartLatitude + " " + tripStartLongitude +
-                        " to " + tripStopLatitude + " " + tripStopLongitude)
+                            tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                            tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+distance)
                         );
                     } else {
                         // cannot happen
                     }
                 } else {
-                    if (startState.equals(stopState)) {
+                    if (startState.equals(endState)) {
                         // taxi still empty, waiting for passenger...
                         continue;
-                    } else if (startState.equals("E") && stopState.equals("M")) {
+                    } else if (startState.equals("E") && endState.equals("M")) {
                         // Start a new trip. Record the start position.
-                        tripStartLatitude = startLatitude;
-                        tripStartLongitude = startLongitude;
+                        tripStartTime = startTimestamp;
+                        tripStartLatitude = Double.parseDouble(startLatitude);;
+                        tripStartLongitude = Double.parseDouble(startLongitude);
+                        tripStartState = startState;
                         tripRecoding = true;
-                    } else if (startState.equals("M") && stopState.equals("E")) {
+                    } else if (startState.equals("M") && endState.equals("E")) {
                         // cannot happen
                         context.write(new Text("ERROR in taxi " + key.getFirst() +
                         "start time " + startTimestamp), new Text("3"));
@@ -155,6 +177,25 @@ public class CreateTrips {
         return job;
     }
 
+    public static final double R = 6372.8; // In kilometers
+    public static double haversine(double lat1, double lon1, double lat2, double lon2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        lat1 = Math.toRadians(lat1);
+        lat2 = Math.toRadians(lat2);
+ 
+        double a = Math.pow(Math.sin(dLat / 2),2) + Math.pow(Math.sin(dLon / 2),2) * Math.cos(lat1) * Math.cos(lat2);
+        double c = 2 * Math.asin(Math.sqrt(a));
+        return R * c;
+    }
+    public static double distanceSimplify(double lat1, double lng1, double lat2, double lng2) {
+        double dx =lng1-lng2;// 经度差值
+        double dy=lat1-lat2;// 纬度差值
+        double b=(lat1+lat2)/2.0;
+        double Lx=Math.toRadians(dx)*6367000.0*Math.cos(Math.toRadians(b));// 东西距离
+        double Ly=6367000.0*Math.toRadians(dy);// 南北距离
+        return Math.sqrt(Lx *Lx+Ly*Ly);// 用平面的矩形对角距离公式计算总距离
+    }
     public static void main(String[] args) throws Exception {
         Path input = new Path(args[0]);
         Path output1 = new Path(args[1], "pass1");
