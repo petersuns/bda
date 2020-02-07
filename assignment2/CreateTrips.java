@@ -78,6 +78,8 @@ public class CreateTrips {
             String tripEndState = "";
 
             Double distance = 0.0;
+            Double distance_sim = 0.0;
+
             Double distance_two = 0.0;
             boolean airport_trip = false;
 
@@ -86,20 +88,27 @@ public class CreateTrips {
             for (Text value : values) {
                 String line = value.toString();
                 StringTokenizer itr = new StringTokenizer(line, ",'");
-                String startTimestamp = itr.nextToken();
-                // String startLatitude = itr.nextToken();
-                double startLatitude = Double.parseDouble(itr.nextToken());
-                // String startLongitude = itr.nextToken();
-                double startLongitude = Double.parseDouble(itr.nextToken());
-                String startState = itr.nextToken();
-                String endTimestamp = itr.nextToken();
-                // String endLatitude = itr.nextToken();
-                double endLatitude = Double.parseDouble(itr.nextToken());
-                // String endLongitude = itr.nextToken();
-                double endLongitude = Double.parseDouble(itr.nextToken());
-                String endState = itr.nextToken();
-
-        
+                String startTimestamp, startState, endTimestamp, endState;
+                Double startLatitude, startLongitude, endLatitude, endLongitude;
+                try {
+                    startTimestamp = itr.nextToken();
+                    // String startLatitude = itr.nextToken();
+                    startLatitude = Double.parseDouble(itr.nextToken());
+                    // String startLongitude = itr.nextToken();
+                    startLongitude = Double.parseDouble(itr.nextToken());
+                    startState = itr.nextToken();
+                    endTimestamp = itr.nextToken();
+                    // String endLatitude = itr.nextToken();
+                    endLatitude = Double.parseDouble(itr.nextToken());
+                    // String endLongitude = itr.nextToken();
+                    endLongitude = Double.parseDouble(itr.nextToken());
+                    endState = itr.nextToken();
+                } catch (Exception e) {
+                    System.out.println("Error on input: " + e.toString());
+                    e.printStackTrace();
+                    continue;
+                }
+                
                 
                 if (firstSegment) {
                    if (!(startState.equals("E") && endState.equals("M"))) {
@@ -112,22 +121,30 @@ public class CreateTrips {
                         tripStartState = startState;
 
                         distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+
                         continue;
                    }
                 }
+
+
                 // tripStartTime = startTimestamp;
-                // tripStartLatitude = Double.parseDouble(startLatitude);
-                // tripStartLongitude = Double.parseDouble(startLongitude);
+                // tripStartLatitude = startLatitude;
+                // tripStartLongitude = startLongitude;
                 // tripStartState = startState;
                 // tripEndTime = endTimestamp;
-                // tripEndLatitude = Double.parseDouble(endLatitude);
-                // tripEndLongitude = Double.parseDouble(endLongitude);
+                // tripEndLatitude = endLatitude;
+                // tripEndLongitude = endLongitude;
                 // tripEndState = endState;
-                // context.write(new Text("taxi: " + key.getFirst()),
-                //         new Text(
-                //             tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
-                //             tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+distance)
-                //         );
+                // airport_trip = (airport_square_1km( tripStartLatitude, tripStartLongitude) && airport_square_1km(tripEndLatitude, tripEndLongitude));
+                // boolean moving = (startState.equals("M"));
+                // if(airport_trip && moving){
+                //     if (airport_circle_1km(tripStartLatitude, tripStartLongitude) && airport_circle_1km(tripEndLatitude, tripEndLongitude)){
+                //         // distance_two = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                //         context.write(new Text("taxi: " + key.getFirst()), new Text(tripStartTime
+                //         +" "));
+                //     }}
+
 
                 if (tripRecoding) {
                     if (startState.equals(endState)) {
@@ -138,6 +155,8 @@ public class CreateTrips {
                         // tripEndLongitude = startLongitude;
 
                         distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+
                         continue;
                     } else if (startState == "E" && endState == "M") {
                         // cannot happen
@@ -149,18 +168,22 @@ public class CreateTrips {
                         tripEndLongitude = startLongitude;
                         tripEndState = startState;
                         tripRecoding = false;
-                        distance_two = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
-                        airport_trip = (airport_1km( tripStartLatitude, tripStartLongitude) || airport_1km(tripEndLatitude, tripEndLongitude));
-                        // distance = distanceSimplify(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                        airport_trip = (airport_square_1km( tripStartLatitude, tripStartLongitude) || airport_square_1km(tripEndLatitude, tripEndLongitude));
+                        // distance_sim = distanceSimplify(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
 
                         if(airport_trip){
-                            context.write(new Text("taxi: " + key.getFirst()),
-                            new Text(
-                                tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
-                                tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+distance+" "+distance_two+" "+airport_trip)
-                            );
+                            if (airport_circle_1km(tripStartLatitude, tripStartLongitude) || airport_circle_1km(tripEndLatitude, tripEndLongitude)){
+                                //distance_two = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                                context.write(new Text("taxi: " + key.getFirst()),
+                                new Text(
+                                    tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                                    tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
+                                    /* distance_two+" " + */ distance+" "+distance_sim+" "+airport_trip)
+                                );
+                            }
                         }
                         distance=0.0;
+                        distance_sim=0.0;
  
                     } else {
                         // cannot happen
@@ -180,6 +203,8 @@ public class CreateTrips {
                         tripRecoding = true;
 
                         distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+
 
                     } else if (startState.equals("M") && endState.equals("E")) {
                         // cannot happen
@@ -228,10 +253,24 @@ public class CreateTrips {
         double dx =lng1-lng2;// 经度差值
         double dy=lat1-lat2;// 纬度差值
         double b=(lat1+lat2)/2.0;
-        double Lx=Math.toRadians(dx)*6367000.0*Math.cos(Math.toRadians(b));// 东西距离
-        double Ly=6367000.0*Math.toRadians(dy);// 南北距离
+        double Lx=Math.toRadians(dx)*6371.0*Math.cos(Math.toRadians(b));// 东西距离
+        double Ly=6371.0*Math.toRadians(dy);// 南北距离
         return Math.sqrt(Lx *Lx+Ly*Ly);// 用平面的矩形对角距离公式计算总距离
     }
+    public static double distanceSimplify3(double lat1, double lon1, double lat2, double lon2) {
+        lat1 = Math.toRadians(lat1);
+        lon1 = Math.toRadians(lon1);
+        lat2 = Math.toRadians(lat2);
+        lon2 = Math.toRadians(lon2);
+        double R = 6371.0;
+        double x = (lon2 - lon1) * Math.cos( 0.5*(lat2+lat1));
+        double y = lat2 - lat1;
+        return R * Math.sqrt( x*x + y*y );
+    }
+
+
+
+
     public static final double airport_lat = 37.62131; 
     public static final double airport_lon = -122.37896; 
     public static final double diff_lat = 0.00909;
@@ -242,9 +281,13 @@ public class CreateTrips {
     public static final double airport_lon_minus_1km = airport_lon - diff_lon;
 
 
-    public static boolean airport_1km(double lat1, double lon1) {
+    public static boolean airport_square_1km(double lat1, double lon1) {
         return (lat1 < airport_lat_plus_1km && lat1 > airport_lat_minus_1km &&
                 lon1 < airport_lon_plus_1km && lon1 > airport_lon_minus_1km);
+    }
+
+    public static boolean airport_circle_1km(double lat1, double lon1) {
+        return haversine(lat1,lon1,airport_lat,airport_lon) <=1.0; 
     }
     public static void main(String[] args) throws Exception {
         Path input = new Path(args[0]);

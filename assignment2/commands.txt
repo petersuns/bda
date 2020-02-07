@@ -1,0 +1,19 @@
+On MacBook: copy WordCount.java and input file to SSH PC home folder:
+> scp ./WordCount.java r0689323@ham.cs.kotnet.kuleuven.be:/home/r0689323
+> scp ./input.txt r0689323@ham.cs.kotnet.kuleuven.be:/home/r0689323
+
+On SSH PC: initialize Hadoop:
+> source /home/u0132009/cluster/cluster1.sh
+
+Copy to DFS:
+> hadoop fs -copyFromLocal ./input_text.txt /user/r0689323/input_text.txt
+
+Compile Java code:
+> javac': javac -cp $(yarn classpath) WordCount.java
+> jar cf WordCount.jar *.class
+
+Execute Hadoop job:
+> hadoop jar WordCount.jar WordCount /user/r0689323/input.txt /user/r0689323
+
+See output:
+> hadoop fs -cat /user/r0689323/pass1/part-r-00000
