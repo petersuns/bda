@@ -247,6 +247,7 @@ public class CreateTrips {
         job.setOutputKeyClass(TextPair.class);
         job.setOutputValueClass(Text.class);
         job.setOutputFormatClass(TextOutputFormat.class);
+	job.setNumReduceTasks(10);
 
         FileInputFormat.addInputPath(job, input);
         FileOutputFormat.setOutputPath(job, output);
