@@ -35,18 +35,17 @@ public class CreateTrips {
 
             String taxiNumber = itr.nextToken();
             String startTimestamp = itr.nextToken();
-            String otherInfo = "";
+            String otherInfo = line;
 
-            otherInfo += startTimestamp;
-            try {
-                for (int i = 0; i < 7; i++) {
-                    otherInfo += "," + itr.nextToken();
-                }
-            } catch (Exception e) {
-                System.out.println("Error on input: " + e.toString());
-                e.printStackTrace();
-                return;
-            }
+            // try {
+            //     for (int i = 0; i < 7; i++) {
+            //         otherInfo += "," + itr.nextToken();
+            //     }
+            // } catch (Exception e) {
+            //     System.out.println("Error on input: " + e.toString());
+            //     e.printStackTrace();
+            //     return;
+            // }
 
             context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
         }
@@ -124,10 +123,11 @@ public class CreateTrips {
                 String line = value.toString();
                 StringTokenizer itr = new StringTokenizer(line, ",'");
                 Date startTimestamp,endTimestamp;
-                String  startState, endState;
+                String  startState, endState, taxiNumber;
                 Double startLatitude, startLongitude, endLatitude, endLongitude;
                 double time_diff, speed;
                 try {
+                    taxiNumber = itr.nextToken(); // not used
                     startTimestamp = formatter.parse(itr.nextToken());
                     startLatitude = Double.parseDouble(itr.nextToken());
                     startLongitude = Double.parseDouble(itr.nextToken());
