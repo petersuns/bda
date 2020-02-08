@@ -330,10 +330,11 @@ public class CreateTrips {
         job.setOutputKeyClass(TextPair.class);
         job.setOutputValueClass(Text.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-	    job.setNumReduceTasks(1);
+        job.setNumReduceTasks(1);
 
         FileInputFormat.addInputPath(job, input);
         FileOutputFormat.setOutputPath(job, output);
+        FileInputFormat.setMaxInputSplitSize(job, 12800000);
         return job;
     }
 
