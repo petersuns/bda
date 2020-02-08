@@ -17,3 +17,13 @@ Execute Hadoop job:
 
 See output:
 > hadoop fs -cat /user/r0689323/pass1/part-r-00000
+
+
+################
+cd "/Users/shuosun/Google Drive (petersun)/KU LEUVEN/MoAI/Big Data Analytics Programming/github-bda/bda/assignment2"
+
+javac -cp $(yarn classpath) TextPair.java CreateTrips.java 
+
+jar cf CreateTrips.jar *.class 
+
+hadoop jar CreateTrips.jar CreateTrips 2010_03.segments output  

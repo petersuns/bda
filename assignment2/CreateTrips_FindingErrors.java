@@ -1,7 +1,16 @@
 import java.io.IOException;
 
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.Locale;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+// import org.joda.time.format.DateTimeFormat;
+
+
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -119,10 +128,29 @@ public class CreateTrips_FindingErrors{
                     continue;
                 }
                 
-                String secondState = endState;
+                // String secondState = endState;
+                // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yy-MM-dd", Locale.ENGLISH);
+                // Date date =  formatter.parse(startTimestamp);
+                // DateTimeFormatter formatter = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm:ss");
+                // Date date = formatter.parse(startTimestamp);
 
+                // String string = "January 2, 2010";
+                // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy");
+                // LocalDateTime date = LocalDateTime.parse(string, formatter);
+                // System.out.println(date); // 2010-01-02
 
-
+                // String str_date = "11-June-07";
+                DateFormat formatter;
+                Date date;
+                formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+                formatter.setTimeZone(TimeZone.getTimeZone("America/Los Angeles"));
+                try {
+                    date = formatter.parse(startTimestamp);
+                } catch (Exception e) {
+                    System.out.println("Error on date: " + e.toString());
+                    e.printStackTrace();
+                    continue;
+                }
                 
                 if (segmentRecording==1) {
                     segmentStartTime = startTimestamp;
@@ -197,7 +225,7 @@ public class CreateTrips_FindingErrors{
                                 new Text(
                                     tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
                                     tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
-                                    /* distance_two+" " + */ distance+" "+distance_sim+" "+airport_trip)
+                                    /* distance_two+" " + */ distance+" "+distance_sim+" "+airport_trip+" "+date)
                                 );
                             }
                         }
