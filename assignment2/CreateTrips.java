@@ -38,8 +38,14 @@ public class CreateTrips {
             String otherInfo = "";
 
             otherInfo += startTimestamp;
-            for (int i = 0; i < 7; i++) {
-                otherInfo += "," + itr.nextToken();
+            try {
+                for (int i = 0; i < 7; i++) {
+                    otherInfo += "," + itr.nextToken();
+                }
+            } catch (Exception e) {
+                System.out.println("Error on input: " + e.toString());
+                e.printStackTrace();
+                return;
             }
 
             context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
