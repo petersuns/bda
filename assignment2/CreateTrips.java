@@ -32,17 +32,14 @@ public class CreateTrips {
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             
             String line = value.toString();
-
             if (line.indexOf('M') < 0) {
                 return;
             }
-
             StringTokenizer itr = new StringTokenizer(line, ",‘");
             String taxiNumber = itr.nextToken();
             String startTimestamp = itr.nextToken();
             String otherInfo=line;
-
-            context.write(new TextPair(taxiNumber, startTimestamp), new Text(" "));
+            context.write(new TextPair(taxiNumber, startTimestamp), new Text(line));
             // try {
             //     for (int i = 0; i < 7; i++) {
             //         otherInfo += "," + itr.nextToken();
@@ -125,37 +122,37 @@ public class CreateTrips {
 
             for (Text value : values) {
                 String line = value.toString();
-//                 StringTokenizer itr = new StringTokenizer(line, ",'");
-//                 Date startTimestamp,endTimestamp;
-//                 String  startState, endState, taxiNumber;
-//                 Double startLatitude, startLongitude, endLatitude, endLongitude;
-//                 double time_diff, speed;
-//                 try {
-//                     taxiNumber = itr.nextToken(); // not used
-//                     startTimestamp = formatter.parse(itr.nextToken());
-//                     startLatitude = Double.parseDouble(itr.nextToken());
-//                     startLongitude = Double.parseDouble(itr.nextToken());
-//                     startState = itr.nextToken();
+                StringTokenizer itr = new StringTokenizer(line, ",'");
+                Date startTimestamp,endTimestamp;
+                String  startState, endState, taxiNumber;
+                Double startLatitude, startLongitude, endLatitude, endLongitude;
+                double time_diff, speed;
+                try {
+                    taxiNumber = itr.nextToken(); // not used
+                    startTimestamp = formatter.parse(itr.nextToken());
+                    startLatitude = Double.parseDouble(itr.nextToken());
+                    startLongitude = Double.parseDouble(itr.nextToken());
+                    startState = itr.nextToken();
 
-//                     endTimestamp = formatter.parse(itr.nextToken());
-//                     endLatitude = Double.parseDouble(itr.nextToken());
-//                     endLongitude = Double.parseDouble(itr.nextToken());
-//                     endState = itr.nextToken();
-//                     distance_segments = haversine(startLatitude, startLongitude, endLatitude, endLongitude);
-//                     time_diff = (endTimestamp.getTime()-startTimestamp.getTime())/1000; 
-//                     speed = distance_segments/(time_diff/(60*60));
+                    endTimestamp = formatter.parse(itr.nextToken());
+                    endLatitude = Double.parseDouble(itr.nextToken());
+                    endLongitude = Double.parseDouble(itr.nextToken());
+                    endState = itr.nextToken();
+                    distance_segments = haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                    time_diff = (endTimestamp.getTime()-startTimestamp.getTime())/1000; 
+                    speed = distance_segments/(time_diff/(60*60));
 
 
-//                 } catch (Exception e) {
-//                     System.out.println("Error on input: " + e.toString());
-//                     e.printStackTrace();
-//                     continue;
-//                 }
-// // data cleaning 
-//                 if (speed>200){
-//                     tripRecoding=false;
-//                     continue;
-//                 }
+                } catch (Exception e) {
+                    System.out.println("Error on input: " + e.toString());
+                    e.printStackTrace();
+                    continue;
+                }
+// data cleaning 
+                if (speed>200){
+                    tripRecoding=false;
+                    continue;
+                }
 ////////////////////////////////////////////////////////////////recreate segements
                 // if (segmentRecording==1) {
                 //     segmentStartTime = startTimestamp;
@@ -186,32 +183,32 @@ public class CreateTrips {
                 // segmentStartState = segmentEndState;
 ////////////////////////////////////////////////////////////////////////////
 
-                // if (tripRecoding==false){
-                //     airport_trip=airport_trip_between=airport_trip_start=false;
-                // }
+                if (tripRecoding==false){
+                    airport_trip=airport_trip_between=airport_trip_start=false;
+                }
                 
                 
-                // if (firstSegment) {
-                //    if (!(startState.equals("E") && endState.equals("M"))) {
-                //        continue;
-                //    } else {
-                //         firstSegment = false;
-                //         tripStartTime = startTimestamp;
-                //         tripStartLatitude = startLatitude;
-                //         tripStartLongitude = startLongitude;
-                //         tripStartState = startState;
-                //         // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
-                //         distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+                if (firstSegment) {
+                   if (!(startState.equals("E") && endState.equals("M"))) {
+                       continue;
+                   } else {
+                        firstSegment = false;
+                        tripStartTime = startTimestamp;
+                        tripStartLatitude = startLatitude;
+                        tripStartLongitude = startLongitude;
+                        tripStartState = startState;
+                        // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
 
 
-                //         if (!airport_trip && airport_1km(startLatitude, startLongitude)){
-                //             airport_trip=true;
-                //             airport_trip_start = true;
-                //         }
+                        if (!airport_trip && airport_1km(startLatitude, startLongitude)){
+                            airport_trip=true;
+                            airport_trip_start = true;
+                        }
 
-                //         continue;
-                //    }
-                // }
+                        continue;
+                   }
+                }
 
                 // tripStartTime = startTimestamp;
                 // tripStartLatitude = startLatitude;
@@ -221,7 +218,7 @@ public class CreateTrips {
                 // tripEndLatitude = endLatitude;
                 // tripEndLongitude = endLongitude;
                 // tripEndState = endState;
-                context.write(new Text("taxi: " + key.getFirst()) ,new Text(line));
+                // context.write(new Text("taxi: " + key.getFirst()) ,new Text(line));
 
                 // if (time_diff<2){
                 //     context.write(new Text("taxi: " + key.getFirst()) ,new Text(line+" "+distance+" "+time_diff+" "+speed));
@@ -237,86 +234,87 @@ public class CreateTrips {
 
 
 
-                // if (tripRecoding) {
-                //     if (startState.equals("M") && endState.equals("M")) {
-                //         // taxi keeps driving with or without a passenger...
-                //         if (!airport_trip && airport_1km(startLatitude, startLongitude)){
-                //             airport_trip=true;
-                //             airport_trip_between = true;
-                //         }
-                //         // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
-                //         distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
-                //         continue;
-                //     } else if (startState.equals("M") && endState.equals("E")) {
-                //         // End the current trip, record the stop position and emit output key-value.
-                //         tripEndTime = startTimestamp;
-                //         tripEndLatitude = startLatitude;
-                //         tripEndLongitude = startLongitude;
-                //         tripEndState = startState;
-                //         tripRecoding = false;
-                //         double revenue = revenue(distance_sim);
+                if (tripRecoding) {
+                    if (startState.equals("M") && endState.equals("M")) {
+                        // taxi keeps driving with or without a passenger...
+                        if (!airport_trip && airport_1km(startLatitude, startLongitude)){
+                            airport_trip=true;
+                            airport_trip_between = true;
+                        }
+                        // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+                        continue;
+                    } else if (startState.equals("M") && endState.equals("E")) {
+                        // End the current trip, record the stop position and emit output key-value.
+                        tripEndTime = startTimestamp;
+                        tripEndLatitude = startLatitude;
+                        tripEndLongitude = startLongitude;
+                        tripEndState = startState;
+                        tripRecoding = false;
+                        double revenue = revenue(distance_sim);
 
-                //         if (!airport_trip && airport_1km(startLatitude, startLongitude)){
-                //             airport_trip=true;
-                //             airport_trip_start = true;
-                //         }
-                //         airport_trip = (airport_square_1km( tripStartLatitude, tripStartLongitude) || airport_square_1km(tripEndLatitude, tripEndLongitude));
-                //         if(airport_trip){
-                //                 // context.write(new Text("taxi: " + key.getFirst()),
-                //                 // new Text(
-                //                 //     formatter.format(tripStartTime) + ","+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
-                //                 //     formatter.format(tripEndTime) + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
-                //                 //     /* distance_two+" " + */ distance+" "+distance_sim+" "+"$"+revenue+" "/*+ formatter.format(date)*/)
-                //                 // );
-                //         }
-                //         distance = distance_sim = 0.0;
-                //         airport_trip = airport_trip_start = airport_trip_between = false;
-                //         continue;
+                        if (!airport_trip && airport_1km(startLatitude, startLongitude)){
+                            airport_trip=true;
+                            airport_trip_start = true;
+                        }
+                        if(airport_trip){
+                                context.write(new Text("taxi: " + key.getFirst()),
+                                new Text(
+                                    formatter.format(tripStartTime) + ","+ 
+                                    // tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                                    // formatter.format(tripEndTime) + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
+                                    // /* distance_two+" " + */ distance+" "+distance_sim+" "+
+                                    "$"+revenue+" "/*+ formatter.format(date)*/)
+                                );
+                        }
+                        distance = distance_sim = 0.0;
+                        airport_trip = airport_trip_start = airport_trip_between = false;
+                        continue;
 
-                //     } else if (startState.equals("E") && endState.equals("M")) {
-                //         // cannot happen
-                //         tripRecoding = false;
-                //         // context.write(new Text("ERROR 1"), new Text(line));
-                //         continue;
-                //     } else {
-                //         // cannot happen
-                //         tripRecoding = false;
-                //         // context.write(new Text("ERROR 2"), new Text(line));
-                //         continue;
+                    } else if (startState.equals("E") && endState.equals("M")) {
+                        // cannot happen
+                        tripRecoding = false;
+                        // context.write(new Text("ERROR 1"), new Text(line));
+                        continue;
+                    } else {
+                        // cannot happen
+                        tripRecoding = false;
+                        // context.write(new Text("ERROR 2"), new Text(line));
+                        continue;
 
 
-                //     }
-                // } else {
-                //     if (startState.equals("E") && endState.equals("M")) {
-                //         // Start a new trip. Record the start position.
-                //         tripStartTime = startTimestamp;
-                //         tripStartLatitude = startLatitude;
-                //         tripStartLongitude = startLongitude;
-                //         tripStartState = startState;
-                //         tripRecoding = true;
+                    }
+                } else {
+                    if (startState.equals("E") && endState.equals("M")) {
+                        // Start a new trip. Record the start position.
+                        tripStartTime = startTimestamp;
+                        tripStartLatitude = startLatitude;
+                        tripStartLongitude = startLongitude;
+                        tripStartState = startState;
+                        tripRecoding = true;
 
-                //         // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
-                //         distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
-                //         if (!airport_trip && airport_1km(startLatitude, startLongitude)){
-                //             airport_trip=true;
-                //             airport_trip_start = true;
-                //         }
-                //         continue;
-                //     } else if (startState.equals("M") && endState.equals("E")) {
-                //         // cannot happen
-                //         tripRecoding = false;
-                //         // context.write(new Text("ERROR 3"), new Text(line));
-                //         continue;
-                //     }else if (startState.equals("E") && endState.equals("E")) {
-                //             // taxi still empty, waiting for passenger...
-                //         continue;
-                //     } else {
-                //         // cannot happen
-                //         tripRecoding = false;
-                //         // context.write(new Text("ERROR 4"), new Text(line));
-                //         continue;
-                //     }
-                // }
+                        // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+                        if (!airport_trip && airport_1km(startLatitude, startLongitude)){
+                            airport_trip=true;
+                            airport_trip_start = true;
+                        }
+                        continue;
+                    } else if (startState.equals("M") && endState.equals("E")) {
+                        // cannot happen
+                        tripRecoding = false;
+                        // context.write(new Text("ERROR 3"), new Text(line));
+                        continue;
+                    }else if (startState.equals("E") && endState.equals("E")) {
+                            // taxi still empty, waiting for passenger...
+                        continue;
+                    } else {
+                        // cannot happen
+                        tripRecoding = false;
+                        // context.write(new Text("ERROR 4"), new Text(line));
+                        continue;
+                    }
+                }
             }
         }
     }
