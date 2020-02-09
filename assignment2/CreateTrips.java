@@ -42,7 +42,7 @@ public class CreateTrips {
             String startTimestamp = itr.nextToken();
             String otherInfo=line;
 
-            context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
+            context.write(new TextPair(taxiNumber, startTimestamp), new Text(" "));
             // try {
             //     for (int i = 0; i < 7; i++) {
             //         otherInfo += "," + itr.nextToken();
