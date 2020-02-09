@@ -27,3 +27,6 @@ javac -cp $(yarn classpath) TextPair.java CreateTrips.java
 jar cf CreateTrips.jar *.class 
 
 hadoop jar CreateTrips.jar CreateTrips 2010_03.segments output  
+
+
+javac -cp $(yarn classpath) TextPair.java CreateTrips.java && jar cf CreateTrips.jar *.class && hadoop jar CreateTrips.jar CreateTrips 2010_03.segments output  
