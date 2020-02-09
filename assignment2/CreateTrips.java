@@ -31,11 +31,10 @@ public class CreateTrips {
         
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
-            StringTokenizer itr = new StringTokenizer(line, ",'");
-
+            StringTokenizer itr = new StringTokenizer(line, ",‘");
             String taxiNumber = itr.nextToken();
             String startTimestamp = itr.nextToken();
-            String otherInfo = line;
+            String otherInfo=line;
 
             // try {
             //     for (int i = 0; i < 7; i++) {
@@ -46,8 +45,11 @@ public class CreateTrips {
             //     e.printStackTrace();
             //     return;
             // }
-
-            context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
+            if (otherInfo.indexOf('M')>0){
+                context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
+            }else{
+                return;
+            }
         }
     }
 
@@ -217,6 +219,8 @@ public class CreateTrips {
                 // tripEndLatitude = endLatitude;
                 // tripEndLongitude = endLongitude;
                 // tripEndState = endState;
+                // context.write(new Text("taxi: " + key.getFirst()) ,new Text(line));
+
                 // if (time_diff<2){
                 //     context.write(new Text("taxi: " + key.getFirst()) ,new Text(line+" "+distance+" "+time_diff+" "+speed));
                 // }
@@ -254,16 +258,14 @@ public class CreateTrips {
                             airport_trip=true;
                             airport_trip_start = true;
                         }
-                        // airport_trip = (airport_square_1km( tripStartLatitude, tripStartLongitude) || airport_square_1km(tripEndLatitude, tripEndLongitude));
+                        airport_trip = (airport_square_1km( tripStartLatitude, tripStartLongitude) || airport_square_1km(tripEndLatitude, tripEndLongitude));
                         if(airport_trip){
-                            // if (airport_circle_1km(tripStartLatitude, tripStartLongitude) || airport_circle_1km(tripEndLatitude, tripEndLongitude)){
                                 context.write(new Text("taxi: " + key.getFirst()),
                                 new Text(
                                     formatter.format(tripStartTime) + ","+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
                                     formatter.format(tripEndTime) + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
                                     /* distance_two+" " + */ distance+" "+distance_sim+" "+"$"+revenue+" "/*+ formatter.format(date)*/)
                                 );
-                            // }
                         }
                         distance = distance_sim = 0.0;
                         airport_trip = airport_trip_start = airport_trip_between = false;
@@ -283,10 +285,7 @@ public class CreateTrips {
 
                     }
                 } else {
-                    if (startState.equals("E") && endState.equals("E")) {
-                        // taxi still empty, waiting for passenger...
-                        continue;
-                    } else if (startState.equals("E") && endState.equals("M")) {
+                    if (startState.equals("E") && endState.equals("M")) {
                         // Start a new trip. Record the start position.
                         tripStartTime = startTimestamp;
                         tripStartLatitude = startLatitude;
@@ -305,6 +304,9 @@ public class CreateTrips {
                         // cannot happen
                         tripRecoding = false;
                         // context.write(new Text("ERROR 3"), new Text(line));
+                        continue;
+                    }else if (startState.equals("E") && endState.equals("E")) {
+                            // taxi still empty, waiting for passenger...
                         continue;
                     } else {
                         // cannot happen
