@@ -33,17 +33,18 @@ public class CreateTrips_FindingErrors{
         
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String line = value.toString();
+            if (line.indexOf('M') < 0) {
+                return;
+            }
             StringTokenizer itr = new StringTokenizer(line, ",'");
 
             String taxiNumber = itr.nextToken();
             String startTimestamp = itr.nextToken();
             String otherInfo = "";
-
             otherInfo += startTimestamp;
             for (int i = 0; i < 7; i++) {
                 otherInfo += "," + itr.nextToken();
             }
-
             context.write(new TextPair(taxiNumber, startTimestamp), new Text(otherInfo));
         }
     }
@@ -73,24 +74,33 @@ public class CreateTrips_FindingErrors{
         public void reduce(TextPair key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
             
+    
             Boolean firstSegment = true;
             Boolean tripRecoding = true;
 
-            String tripStartTime = "";
+            Date tripStartTime= new Date();
+            
+            // Date date = StringToDate("2015-12-06 17:03:00");
+
             Double tripStartLongitude = 0.0;
             Double tripStartLatitude = 0.0;
             String tripStartState = "";
 
             Double tripEndLongitude = 0.0;
             Double tripEndLatitude = 0.0;
-            String tripEndTime = "";
+            Date tripEndTime;
             String tripEndState = "";
 
             Double distance = 0.0;
             Double distance_sim = 0.0;
+            Double distance_segments=0.0;
 
             Double distance_two = 0.0;
             boolean airport_trip = false;
+            boolean airport_trip_start = false;
+            boolean airport_trip_between = false;
+            Date startTimestamp,endTimestamp;
+
 
 
 
@@ -102,64 +112,70 @@ public class CreateTrips_FindingErrors{
             segmentStartLatitude=segmentStartLongitude=segmentEndLatitude=segmentEndLongitude=0.0;
 
 
+            Date date;
+            DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+            formatter.setTimeZone(TimeZone.getTimeZone("America/Los Angeles"));
 
 
             for (Text value : values) {
                 String line = value.toString();
                 StringTokenizer itr = new StringTokenizer(line, ",'");
-                String startTimestamp, startState, endTimestamp, endState;
+                String  startState, endState;
                 Double startLatitude, startLongitude, endLatitude, endLongitude;
                 try {
-                    startTimestamp = itr.nextToken();
-                    // String startLatitude = itr.nextToken();
+                    startTimestamp = formatter.parse(itr.nextToken());
                     startLatitude = Double.parseDouble(itr.nextToken());
-                    // String startLongitude = itr.nextToken();
                     startLongitude = Double.parseDouble(itr.nextToken());
                     startState = itr.nextToken();
-                    endTimestamp = itr.nextToken();
-                    // String endLatitude = itr.nextToken();
+                    endTimestamp = formatter.parse(itr.nextToken());
                     endLatitude = Double.parseDouble(itr.nextToken());
-                    // String endLongitude = itr.nextToken();
                     endLongitude = Double.parseDouble(itr.nextToken());
                     endState = itr.nextToken();
+                    distance_segments = haversine(startLatitude, startLongitude, endLatitude, endLongitude);
+                    double time_diff = (endTimestamp.getTime()-startTimestamp.getTime())/1000; 
+                    double speed = distance_segments/(time_diff/(60*60));
                 } catch (Exception e) {
                     System.out.println("Error on input: " + e.toString());
                     e.printStackTrace();
                     continue;
                 }
                 
-                if (segmentRecording==1) {
-                    segmentStartTime = startTimestamp;
-                    segmentStartLatitude = startLatitude;
-                    segmentStartLongitude = startLongitude;
-                    segmentStartState = startState;
-                    segmentRecording = 2;
-                    continue;
-                }else if (segmentRecording==2){
-                    segmentEndTime = startTimestamp;
-                    segmentEndLatitude = startLatitude;
-                    segmentEndLongitude = startLongitude;
-                    segmentEndState = startState;
-                }else{
-                    context.write(new Text("ERROR E"), new Text(line));
-                }
+                
+                // if (segmentRecording==1) {
+                //     segmentStartTime = startTimestamp;
+                //     segmentStartLatitude = startLatitude;
+                //     segmentStartLongitude = startLongitude;
+                //     segmentStartState = startState;
+                //     segmentRecording = 2;
+                //     continue;
+                // }else if (segmentRecording==2){
+                //     segmentEndTime = startTimestamp;
+                //     segmentEndLatitude = startLatitude;
+                //     segmentEndLongitude = startLongitude;
+                //     segmentEndState = startState;
+                // }else{
+                //     context.write(new Text("ERROR E"), new Text(line));
+                // }
 
-                startTimestamp = segmentStartTime;
-                startLatitude = segmentStartLatitude;
-                startLongitude = segmentStartLongitude;
-                startState=segmentStartState;
-                endState=segmentEndState;
-                segmentRecording=2;
+                // startTimestamp = segmentStartTime;
+                // startLatitude = segmentStartLatitude;
+                // startLongitude = segmentStartLongitude;
+                // startState=segmentStartState;
+                // endState=segmentEndState;
+                // segmentRecording=2;
 
-                segmentStartTime = segmentEndTime;
-                segmentStartLatitude = segmentEndLatitude;
-                segmentStartLongitude = segmentEndLongitude;
-                segmentStartState = segmentEndState;
+                // segmentStartTime = segmentEndTime;
+                // segmentStartLatitude = segmentEndLatitude;
+                // segmentStartLongitude = segmentEndLongitude;
+                // segmentStartState = segmentEndState;
 
 
                 
                 if (firstSegment) {
                     if (!(startState.equals("E") && endState.equals("M"))) {
+                        context.write(new Text(key.getFirst()+line), new Text(""));
+
+
                         continue;
                     } else {
                          firstSegment = false;
@@ -167,9 +183,11 @@ public class CreateTrips_FindingErrors{
                          tripStartLatitude = startLatitude;
                          tripStartLongitude = startLongitude;
                          tripStartState = startState;
+                         context.write(new Text(key.getFirst()+line), new Text(""));
+
  
                         //  distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
-                         distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+                        //  distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
                          continue;
                     }
                  }
@@ -178,12 +196,13 @@ public class CreateTrips_FindingErrors{
                     if (startState.equals("M") && endState.equals("M")) {
                         // taxi keeps driving with or without a passenger...
                         // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
-                        distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+                        // distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
+                        context.write(new Text(key.getFirst()+line), new Text(""));
                         continue;
                     } else if (startState.equals("E") && endState.equals("M")) {
                         // cannot happen
                         // tripRecoding = false;
-                        context.write(new Text("ERROR 1"), new Text(line));
+                        context.write(new Text(key.getFirst()+line), new Text("error 1"));
 
                     } else if (startState.equals("M") && endState.equals("E")) {
                         // End the current trip, record the stop position and emit output key-value.
@@ -193,30 +212,33 @@ public class CreateTrips_FindingErrors{
                         tripEndState = startState;
                         tripRecoding = false;
                         airport_trip = (airport_square_1km( tripStartLatitude, tripStartLongitude) || airport_square_1km(tripEndLatitude, tripEndLongitude));
+                        context.write(new Text(key.getFirst()+line), new Text(""));
 
-                        if(airport_trip){
-                            if (airport_circle_1km(tripStartLatitude, tripStartLongitude) || airport_circle_1km(tripEndLatitude, tripEndLongitude)){
-                                //distance_two = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
-                                context.write(new Text("taxi: " + key.getFirst()),
-                                new Text(
-                                    tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
-                                    tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
-                                    /* distance_two+" " + */ distance+" "+distance_sim+" "+airport_trip+" "+date)
-                                );
-                            }
-                        }
+                        // if(airport_trip){
+                        //     if (airport_circle_1km(tripStartLatitude, tripStartLongitude) || airport_circle_1km(tripEndLatitude, tripEndLongitude)){
+                        //         //distance_two = haversine(tripStartLatitude, tripStartLongitude, tripEndLatitude, tripEndLongitude);
+                        //         context.write(new Text( key.getFirst()),
+                        //         new Text(
+                        //             tripStartTime + " "+ tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                        //             tripEndTime + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
+                        //             /* distance_two+" " + */ distance+" "+distance_sim+" "+airport_trip+" ")
+                        //         );
+                        //     }
+                        // }
                         // distance=0.0;
                         distance_sim=0.0;
                         continue;
  
                     } else {
                         // cannot happen
-                        context.write(new Text("ERROR 2"), new Text(line));
+                        context.write(new Text(key.getFirst()+line), new Text("error 2"));
 
                     }
                 } else {
                     if (startState.equals("E") && endState.equals("E")) {
                         // taxi still empty, waiting for passenger...
+                        context.write(new Text(key.getFirst()+line), new Text("error 3"));
+
                         continue;
                     } else if (startState.equals("E") && endState.equals("M")) {
                         // Start a new trip. Record the start position.
@@ -225,17 +247,17 @@ public class CreateTrips_FindingErrors{
                         tripStartLongitude = startLongitude;
                         tripStartState = startState;
                         tripRecoding = true;
+                        context.write(new Text(key.getFirst()+line), new Text(""));
 
                         // distance += haversine(startLatitude, startLongitude, endLatitude, endLongitude);
                         distance_sim += distanceSimplify(startLatitude, startLongitude, endLatitude, endLongitude);
                         continue;
                     } else if (startState.equals("M") && endState.equals("E")) {
                         // cannot happen
-
-                        context.write(new Text("ERROR 3"), new Text(line));
+                        context.write(new Text(key.getFirst()+line), new Text("error 4"));
                     } else {
                         // cannot happen
-                        context.write(new Text("ERROR 4"), new Text(line));
+                        context.write(new Text(key.getFirst()+line), new Text("error 5"));
                     }
                 }
             }

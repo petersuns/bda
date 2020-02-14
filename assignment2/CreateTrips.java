@@ -251,21 +251,22 @@ public class CreateTrips {
                         tripEndLongitude = startLongitude;
                         tripEndState = startState;
                         tripRecoding = false;
-                        double revenue = revenue(distance_sim);
 
                         if (!airport_trip && airport_1km(startLatitude, startLongitude)){
                             airport_trip=true;
                             airport_trip_start = true;
                         }
                         if(airport_trip){
-                                context.write(new Text("taxi: " + key.getFirst()),
-                                new Text(
-                                    formatter.format(tripStartTime) + ","+ 
-                                    // tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
-                                    // formatter.format(tripEndTime) + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
-                                    // /* distance_two+" " + */ distance+" "+distance_sim+" "+
-                                    "$"+revenue+" "/*+ formatter.format(date)*/)
-                                );
+                            double revenue = revenue(distance_sim);
+
+                            context.write(new Text("taxi: " + key.getFirst()),
+                            new Text(
+                                formatter.format(tripStartTime) + ","+ 
+                                // tripStartLatitude + " " + tripStartLongitude + " " + tripStartState + " "+
+                                // formatter.format(tripEndTime) + " " + tripEndLatitude + " " + tripEndLongitude + " " + tripEndState+" "+
+                                // /* distance_two+" " + */ distance+" "+distance_sim+" "+
+                                "$"+revenue+" "/*+ formatter.format(date)*/)
+                            );
                         }
                         distance = distance_sim = 0.0;
                         airport_trip = airport_trip_start = airport_trip_between = false;

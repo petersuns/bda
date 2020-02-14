@@ -20,6 +20,9 @@ See output:
 
 
 ################
+2010_03.segments
+2010_03_50p.segments
+
 cd "/Users/shuosun/Google Drive (petersun)/KU LEUVEN/MoAI/Big Data Analytics Programming/github-bda/bda/assignment2"
 
 javac -cp $(yarn classpath) TextPair.java CreateTrips.java 
@@ -29,4 +32,11 @@ jar cf CreateTrips.jar *.class
 hadoop jar CreateTrips.jar CreateTrips 2010_03.segments output  
 
 
-javac -cp $(yarn classpath) TextPair.java CreateTrips.java && jar cf CreateTrips.jar *.class && hadoop jar CreateTrips.jar CreateTrips 2010_03.segments output  
+javac -cp $(yarn classpath) TextPair.java CreateTrips.java && jar cf CreateTrips.jar *.class && time hadoop jar CreateTrips.jar CreateTrips 2010_03.segments output  
+
+javac -cp $(yarn classpath) TextPair.java tripConstruction.java && jar cf tripConstruction.jar *.class && time hadoop jar tripConstruction.jar tripConstruction 2010_03_50p.segments output_trips  
+
+javac -cp $(yarn classpath) TextPair.java airportRevenue.java && jar cf airportRevenue.jar *.class && time hadoop jar airportRevenue.jar airportRevenue 706_trips output_706_airport
+
+
+javac -cp $(yarn classpath) TextPair.java CreateTrips_FindingErrors.java && jar cf CreateTrips_FindingErrors.jar *.class && time hadoop jar CreateTrips_FindingErrors.jar CreateTrips_FindingErrors 2010_03_50p.segments output_50p_errors
