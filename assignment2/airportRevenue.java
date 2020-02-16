@@ -93,7 +93,7 @@ public class airportRevenue {
                 taxiNumber = itr.nextToken(); // not used
                 // startTimestamp = formatter.parse(itr.nextToken());
                 startTimestamp_string = itr.nextToken();
-                startTimestamp_string=startTimestamp_string.substring(0,15);
+                startTimestamp_string=startTimestamp_string.substring(0,11);
                 // startTimestamp = formatter.parse(startTimestamp_string);
                 startLatitude = Double.parseDouble(itr.nextToken());
                 startLongitude = Double.parseDouble(itr.nextToken());
@@ -116,9 +116,11 @@ public class airportRevenue {
 
             // context.write(new TextPair(taxiNumber, startState), new Text(line+"2"));
 
-            if (airport_1km(startLatitude, startLongitude) || airport_1km(endLatitude, endLongitude)){
-                double revenue = revenue(distance);
-                context.write(new TextPair(startTimestamp_string, ","), new Text(startTimestamp_string+","+revenue));
+            if (airport_square_1km(startLatitude, startLongitude) || airport_square_1km(endLatitude, endLongitude)){
+                if (airport_circle_1km(startLatitude, startLongitude) || airport_circle_1km(endLatitude, endLongitude)){
+                    double revenue = revenue(distance);
+                    context.write(new TextPair(startTimestamp_string, ","), new Text(startTimestamp_string+","+revenue));
+                }
             }
 
  
@@ -282,28 +284,34 @@ public class airportRevenue {
                 // String line = values.toString();
                 // context.write(new Text("000"), new Text("..."+line));
 
-            double sum =0.0;
+            double totalSum = 0.0, daySum = 0.0;
+            String currentDate = "";
             for (Text value : values) {
                 String line = value.toString();
-
-                // context.write(new Text(key.getFirst()), new Text("1:"+ line));
-
                 StringTokenizer itr = new StringTokenizer(line, ",");
+                String tripStartDate = itr.nextToken();
+                String revenue_string = itr.nextToken();
 
-                String tripStartTime = itr.nextToken();
-                String renevue_string = itr.nextToken();
-                // context.write(new Text(key.getFirst()), new Text("1:"+renevue_string));
-
-
-                Double renevue = Double.parseDouble(renevue_string);
-                sum +=renevue;
-                // context.write(new Text(key.getFirst()), new Text(line));
-                context.write(new Text(key.getFirst()), new Text(renevue_string+","+Double.toString(sum)));
+                if (tripStartDate.equals(currentDate)) {
+                    daySum += Double.parseDouble(revenue_string);
+                } else if (currentDate.equals("")) {
+                    // For the first one, there is no previous day to finish.
+                    // Just start the new day.
+                    daySum = Double.parseDouble(revenue_string);
+                    currentDate = tripStartDate;
+                } else {
+                    // Finish the previous day
+                    totalSum += daySum;
+                    context.write(new Text(currentDate), new Text("Day: " + Double.toString(daySum)));
+                    // Start the new day
+                    daySum = Double.parseDouble(revenue_string);
+                    currentDate = tripStartDate;
+                }
             }
-
-
+            // Finish the last day as well.
+            totalSum += daySum;
+            context.write(new Text(currentDate), new Text("Day: " + Double.toString(daySum) + " Grand total: " + Double.toString(totalSum)));
         }
-
     }
 
     /* --- main methods ---------------------------------------------------- */
