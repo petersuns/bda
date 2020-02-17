@@ -340,11 +340,11 @@ public class tripConstruction {
         job.setOutputKeyClass(TextPair.class);
         job.setOutputValueClass(Text.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-        job.setNumReduceTasks(1);
+        job.setNumReduceTasks(22);
 
         FileInputFormat.addInputPath(job, input);
         FileOutputFormat.setOutputPath(job, output);
-        FileInputFormat.setMaxInputSplitSize(job, 12800000);
+        FileInputFormat.setMinInputSplitSize(job, 1280000000);
         return job;
     }
 
