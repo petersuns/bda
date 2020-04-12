@@ -1,0 +1,136 @@
+---
+title: "R Notebook"
+output: pdf_document
+---
+# Naive Bayes Classifier
+## Threshold test
+
+```{r opts, echo = FALSE}
+knitr::opts_chunk$set(
+  fig.path = "~/Leuven/bda_programming/assignments/assignment1/report/images/"
+)
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+thresholds <- read.csv("../datasets/nbfh.threshold.csv")
+thresholds$threshold <- as.factor(thresholds$threshold)
+# predictions (file with tabs)
+nbfh <- read.csv("../datasets/nbfh.threshold.pred", sep = "\t")
+names(nbfh) <- c("Label", "Predicted", "Spam_prob")
+
+# Suggestion: since under 0.5 there is almost no probability, I could remove
+# the 0.25 threshold
+# Also about this: this is mostly useless, better the ROC. No need of new 
+# metric, just hte predicion values we currently have in "nbfh"
+ggplot(thresholds, aes(samples, y=rec, col = threshold)) + geom_line() + 
+  labs(y = "Recall")
+ggplot(thresholds, aes(samples, y=prec, col = threshold)) + geom_line() + 
+  labs(y = "Precission")
+ggplot(thresholds, aes(samples, y=acc, col = threshold)) + geom_line() +
+  labs(y = "Accuracy")
+
+hist(nbfh$Spam_prob, main = "Spam prediction values", xlab = "Spam probability",
+     breaks = seq(0,1,0.1))
+# so far: we are gonna choose the threshold to be 0.75, because the precision is
+# better
+
+```
+
+# NGrams size
+Using the accumulated version of the codebase
+```{r}
+ngrams <- read.csv("../datasets/nbfh.ngrams.csv")
+ngrams$ngrams <- as.factor(ngrams$ngrams)
+ggplot(ngrams, aes(samples, acc, col = ngrams)) + geom_smooth() + 
+  labs(y = "Accuracy")
+ggplot(ngrams, aes(samples, prec, col = ngrams)) + geom_smooth() + 
+  labs(y = "Precission")
+ggplot(ngrams, aes(samples, rec, col = ngrams)) + geom_smooth() + 
+  labs(y = "Recall")
+ggplot(ngrams, aes(rec, prec, col = ngrams)) + geom_line() + 
+  labs(title = "Precision-recall curve")
+```
+Conclussion: the best is using just one ngram
+
+# Buckets size
+X axis: memory usage
+```{r}
+buckets <- read.csv("../datasets/nbfh.buckets.csv")
+buckets$memory <- 2^buckets$buckets
+buckets <- buckets %>% group_by(buckets) %>% filter(samples == max(samples))
+ggplot(buckets, aes(buckets, acc)) + geom_line() + 
+  labs(title = "                            Accuracy over bucket size", y = "Accuracy", x = "Log Buckets")
+# TODO: add labs to each point in the line and plot the other two metrics
+```
+Clearly, from 18 onwards is good (does not improve anymore)
+
+# Perceptron
+## Learning rate test
+```{r}
+lrate <- read.csv("../datasets/pfh.lrate.csv") %>% filter(lrate %% 0.2 != 0,
+                                                          lrate != 0.1, 
+                                                          lrate != 0.6,
+                                                          lrate != 0.9)
+
+lrate$lrate <- as.factor(lrate$lrate)
+# filter most: show only 0.1, 0.3, 0.5, 0.7, 0.9 and 0.01 and 0.001
+ggplot(lrate, aes(samples, y=rec, col = lrate)) + geom_line() + 
+  labs(y = "Recall")
+ggplot(lrate, aes(samples, y=acc, col = lrate)) + geom_line() + 
+  labs(y = "Accuracy")
+ggplot(lrate, aes(samples, y=prec, col = lrate)) + geom_line() + 
+  labs(y = "Precision")
+
+```
+Looks like 0.9 and 0.6 is good in this dataset, so 0.6 is good. 
+## Ngrams
+```{r}
+ngrams <- read.csv("../datasets/pfh.ngrams.csv")
+ngrams$ngrams <- as.factor(ngrams$ngrams)
+ggplot(ngrams, aes(samples, acc, col = ngrams)) + geom_line() + 
+  labs(y = "Accuracy")
+ggplot(ngrams, aes(samples, prec, col = ngrams)) + geom_line() + 
+  labs(y = "Precission")
+ggplot(ngrams, aes(samples, rec, col = ngrams)) + geom_line() + 
+  labs(y = "Recall")
+ggplot(ngrams, aes(rec, prec, col = ngrams)) + geom_smooth() + 
+  labs(title = "Precision-recall curve")
+# idea: line htat plots only the maximum parameter?
+```
+Looks like 1 and 3 datasets are good, 4 sucks, 2 meh. Expecting the big dataset still. Will use 1 till then
+
+## Coutn Min sketch
+Will compare with a low bucket config to see if it improves
+```{r}
+hashf <- read.csv("../datasets/pfh.hashf.csv")
+hashf$hashf <- as.factor(hashf$hashf)
+ggplot(hashf, aes(samples, acc, col = hashf)) + geom_smooth() + 
+  labs(y = "Accuracy")
+
+```
+
+```{r}
+nbfh <- read.csv("../datasets/out.nbfh.csv")
+nbfh$fpr <- NULL
+nbfh$classif <- "nbfh"
+pfh <- read.csv("../datasets/out.pfh.csv")
+pfh$fpr <- NULL
+pfh$classif <- "pfh"
+pcms <- read.csv("../datasets/out.pcms.csv")
+pcms$fpr <- NULL
+pcms$classif <- "pcms"
+nbcms <- read.csv("../datasets/out.nbcms.csv")
+nbcms$classif <- "nbcms"
+
+whole <- rbind(nbfh, pfh, pcms, nbcms)
+ggplot(whole, aes(samples, y=acc, col = classif)) + geom_line() +
+  labs(y = "Accuracy")
+ggplot(whole, aes(samples, y=rec, col = classif)) + geom_line() + 
+  labs(y = "Recall")
+ggplot(whole, aes(samples, y=prec, col = classif)) + geom_line() + 
+  labs(y = "Precision")
+
+```
+
+
