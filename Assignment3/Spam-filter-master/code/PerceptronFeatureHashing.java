@@ -1,5 +1,6 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,8 +77,18 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
         super.update(labeledText);
         int pr = this.classify(this.makePrediction(labeledText.text));
         int y = labeledText.label;
-        Set<Integer> hashedNgrams = labeledText.text.ngrams.stream()
-                .map(this::hash).collect(Collectors.toSet());
+
+
+        //Set<Integer> hashedNgrams = labeledText.text.ngrams.stream()
+        //        .map(this::hash).collect(Collectors.toSet());
+
+        Set<Integer> hashedNgrams = new HashSet<>();
+        for (String ngram : labeledText.text.ngrams)
+        {
+            hashedNgrams.add(hash(ngram));
+        }
+
+        
         //bias is also a weight with helper feature x0 = 1, must be updated
         this.bias += this.learningRate * (y - pr);
         for(int f: hashedNgrams){
