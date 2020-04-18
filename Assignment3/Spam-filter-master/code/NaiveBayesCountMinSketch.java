@@ -1,6 +1,7 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
@@ -94,6 +95,7 @@ public class NaiveBayesCountMinSketch extends OnlineTextClassifier{
         Set<String> ngrams = labeledText.text.ngrams;
         int c = labeledText.label;
         //update class counts
+        // System.out.println(c);
         this.classCounts[c]++;
         //update feature counts. Set removes duplicates, only presence matters
         //count matrix updated for each hashing funciton and feature value
@@ -103,6 +105,17 @@ public class NaiveBayesCountMinSketch extends OnlineTextClassifier{
             Set<Integer> hashedNgrams = ngrams.stream()
                     .map(s -> hash(s, finalD)).collect(Collectors.toSet());
 
+
+            // Set<Integer> ngramsHashSet = new HashSet <>();
+            // int hashcode;
+            // for (String ngram: labeledText.text.ngrams){
+            //     hashcode = hash(ngram, finalD);
+            //     ngramsHashSet.add(hashcode);
+            // } 
+
+            // for(int i: ngramsHashSet) counts[c][d][i]++;
+
+            
             for(int i: hashedNgrams) counts[c][d][i]++;
         }
     }
@@ -123,37 +136,113 @@ public class NaiveBayesCountMinSketch extends OnlineTextClassifier{
      * @return the prediction
      */
     @Override
+    // public double makePrediction(ParsedText text) {
+    //     double pr;
+    //     // stores the count of each ngram
+    //     HashMap<String, Integer> ngramCountHam = new HashMap<String, Integer>();
+    //     HashMap<String, Integer> ngramCountSpam = new HashMap<String, Integer>();
+    //     double[] labelFeatJoint = new double[2];
+    //     // computes the joint probability of each class and all feature
+    //     for (int c = 0; c < 2; c++) {
+    //         // class probability
+    //         labelFeatJoint[c] = Math.log((double) this.classCounts[c]/ this.nbExamplesProcessed);
+    //         for (String ngram : text.ngrams) {
+    //             int minCount = this.counts[c][0][this.hashFunctions[0].apply(ngram)];
+    //             //  finds minimum count of an ngram out of all hashing functions
+    //             for (int d = 1; d < this.nbOfHashes; d++) {
+    //                 int hashedNgram = this.hashFunctions[d].apply(ngram);
+    //                 // int hashedNgram = this.hashFunctions[d](ngram);
+    //                 int hashCount = this.counts[c][d][hashedNgram];
+    //                 minCount = hashCount < minCount ? hashCount : minCount;
+    //             }
+    //             //  add log(conditional probability) of each feature by class,
+    //             //  using the minCount and laplace smoothing
+    //             labelFeatJoint[c] += Math.log((1.0 + minCount) /
+    //                             (this.classCounts[0] + this.hashSize));
+    //         }
+    //     }
+    //     //log-sum trick. Log(a) = spamSum, Log(b) = hamSum
+    //     // pr = spamSum - (spamSum + Log(1 + e^(hamSum-spamSum))
+    //     pr = -Math.log(1 + Math.exp(labelFeatJoint[0] - labelFeatJoint[1]));
+    //     return Math.exp(pr);
+    // }
     public double makePrediction(ParsedText text) {
         double pr;
         // stores the count of each ngram
-        HashMap<String, Integer> ngramCountHam = new HashMap<String, Integer>();
-        HashMap<String, Integer> ngramCountSpam = new HashMap<String, Integer>();
-
+        // HashMap<String, Integer> ngramCountHam = new HashMap<String, Integer>();
+        // HashMap<String, Integer> ngramCountSpam = new HashMap<String, Integer>();
         double[] labelFeatJoint = new double[2];
-
         // computes the joint probability of each class and all feature
-        for (int c = 0; c < 2; c++) {
-            // class probability
-            labelFeatJoint[c] = Math.log((double) this.classCounts[c]/ this.nbExamplesProcessed);
-            for (String ngram : text.ngrams) {
-                int minCount = this.counts[c][0][this.hashFunctions[0].apply(ngram)];
-                //  finds minimum count of an ngram out of all hashing functions
-                for (int d = 1; d < this.nbOfHashes; d++) {
-                    int hashedNgram = this.hashFunctions[d].apply(ngram);
-                    int hashCount = this.counts[c][d][hashedNgram];
-                    minCount = hashCount < minCount ? hashCount : minCount;
-                }
-                //  add log(conditional probability) of each feature by class,
-                //  using the minCount and laplace smoothing
-                labelFeatJoint[c] += Math.log((1.0 + minCount) /
-                                (this.classCounts[0] + this.hashSize));
-            }
-        }
+        // for (int c = 0; c < 2; c++) {
+        //     // class probability
+        //     labelFeatJoint[c] = Math.log((double) this.classCounts[c]/ this.nbExamplesProcessed);
+        //     for (String ngram : text.ngrams) {
+        //         int minCount = Integer.MAX_VALUE;
+        //         // this.counts[c][0][this.hashFunctions[0].apply(ngram)];
+        //         //  finds minimum count of an ngram out of all hashing functions
+        //         for (int d = 0; d < this.nbOfHashes; d++) {
+        //             int hashedNgram = this.hashFunctions[d].apply(ngram);
+        //             // int hashedNgram = this.hashFunctions[d](ngram);
+        //             int hashCount = this.counts[c][d][hashedNgram];
+        //             minCount = hashCount < minCount ? hashCount : minCount;
+        //         }
+        //         //  add log(conditional probability) of each feature by class,
+        //         //  using the minCount and laplace smoothing
+        //         labelFeatJoint[c] += Math.log((1.0 + minCount) /
+        //                         (this.classCounts[c] + this.hashSize));
+        //     }
+        // }
+        // //log-sum trick. Log(a) = spamSum, Log(b) = hamSum
+        // // pr = spamSum - (spamSum + Log(1 + e^(hamSum-spamSum))
+        // pr = -Math.log(1 + Math.exp(labelFeatJoint[0] - labelFeatJoint[1]));
 
-        //log-sum trick. Log(a) = spamSum, Log(b) = hamSum
-        // pr = spamSum - (spamSum + Log(1 + e^(hamSum-spamSum))
-        pr = -Math.log(1 + Math.exp(labelFeatJoint[0] - labelFeatJoint[1]));
+
+        double prHam = (double) classCounts[0]/this.nbExamplesProcessed;
+        double prSpam = 1 - prHam;
+        // double prWordGivenSpam=0;
+        // double prWordGivenHam=0;        
+        double prWordGivenSpam=Math.log(prSpam);
+        double prWordGivenHam=Math.log(prHam);
+
+        // for spam
+        int minCount = Integer.MAX_VALUE;
+
+        int [] minCountWord0 = new int [text.ngrams.size()];
+        int [] minCountWord = new int [text.ngrams.size()];
+        for (int i =0; i< text.ngrams.size(); i++){
+            minCountWord[i]= minCount;
+            minCountWord0[i]= minCount;
+        }
+        // System.out.println(text.ngrams.size());
+        for (int d = 0; d < this.nbOfHashes; d++) {
+            int i=0;
+            for (String ngram: text.ngrams){
+                // if (i==1){ System.out.println(ngram);}
+                int hashedNgram = this.hashFunctions[d].apply(ngram);
+                int hashCount = this.counts[1][d][hashedNgram];
+                minCountWord[i] = hashCount < minCountWord[i] ? hashCount : minCountWord[i];
+                // if (i==1){ System.out.println(minCountWord[i]);}
+                i++;
+            }
+            // System.out.println(i);
+        }
+        for (int d = 0; d < this.nbOfHashes; d++) {
+            int i=0;
+            for (String ngram: text.ngrams){
+                int hashedNgram = this.hashFunctions[d].apply(ngram);
+                int hashCount = this.counts[0][d][hashedNgram];
+                minCountWord0[i] = hashCount < minCountWord0[i] ? hashCount : minCountWord0[i];
+                i++;
+            }
+            // System.out.println(i);
+        }
+        for (int i =0; i< text.ngrams.size(); i++){
+            prWordGivenSpam += Math.log((1.0 + minCountWord[i]) / (this.classCounts[1] + this.hashSize));
+            prWordGivenHam += Math.log((1.0 + minCountWord0[i]) / (this.classCounts[0] + this.hashSize));
+        }
+        pr = -Math.log(1 + Math.exp(prWordGivenHam - prWordGivenSpam));
         return Math.exp(pr);
+
     }
 
     @Override
