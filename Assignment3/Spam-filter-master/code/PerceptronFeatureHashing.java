@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  * (c) 2017
  */
 public class PerceptronFeatureHashing extends OnlineTextClassifier{
-
+    private int nbOfBuckets;
     private int hashSize;
     private double learningRate;
     private double bias;
@@ -36,6 +36,8 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
     public PerceptronFeatureHashing(int logNbOfBuckets, double learningRate){
         //bias is another wight, must be initialized. Its feature is always one
         this.learningRate = learningRate;
+        this.learningRate = 0.7;
+
         this.threshold = 0.0;
         this.hashSize = (int )Math.pow(2, logNbOfBuckets) - 1;
         Random rand = new Random();
@@ -43,7 +45,7 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
         double rangeMax =  1;
         this.bias = rangeMin + (rangeMax - rangeMin) * rand.nextDouble();
         this.weights = new double[this.hashSize];
-        //random = rangeMin + (rangeMax - rangeMin) * randomDouble
+        // random = rangeMin + (rangeMax - rangeMin) * randomDouble
         for (int i = 0; i < this.hashSize; i++) {
             this.weights[i] = rangeMin + (rangeMax - rangeMin) * rand.nextDouble();
         }
@@ -77,18 +79,8 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
         super.update(labeledText);
         int pr = this.classify(this.makePrediction(labeledText.text));
         int y = labeledText.label;
-
-
-        //Set<Integer> hashedNgrams = labeledText.text.ngrams.stream()
-        //        .map(this::hash).collect(Collectors.toSet());
-
-        Set<Integer> hashedNgrams = new HashSet<>();
-        for (String ngram : labeledText.text.ngrams)
-        {
-            hashedNgrams.add(hash(ngram));
-        }
-
-        
+        Set<Integer> hashedNgrams = labeledText.text.ngrams.stream()
+                .map(this::hash).collect(Collectors.toSet());
         //bias is also a weight with helper feature x0 = 1, must be updated
         this.bias += this.learningRate * (y - pr);
         for(int f: hashedNgrams){
@@ -98,6 +90,7 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
             weights[f] += this.learningRate * (y - pr) * 1;
         }
     }
+
 
 
     /**
@@ -120,6 +113,7 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
         }
         return pr;
     }
+
 
 
     @Override

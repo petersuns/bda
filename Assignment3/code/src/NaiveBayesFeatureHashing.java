@@ -1,3 +1,4 @@
+
 /**
  * Copyright (c) DTAI - KU Leuven – All rights reserved.
  * Proprietary, do not copy or distribute without permission.
@@ -5,6 +6,7 @@
  */
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 
@@ -12,11 +14,10 @@ import java.util.Set;
  * This class is a stub for naive bayes with feature hashing
  */
 public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
-
+    public int nbOfBuckets;
     public int logNbOfBuckets;
     public int[][] counts; // counts[c][i]: The count of n-grams in e-mails of class c (spam: c=1) that hash to value i
     public int[] classCounts; //classCounts[c] the count of e-mails of class c (spam: c=1)
-
     /* FILL IN HERE */
 
     /**
@@ -36,6 +37,9 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
         this.threshold = threshold;
 
         /* FILL IN HERE */
+        this.nbOfBuckets=((int) Math.pow(2, logNbOfBuckets)-1);
+        this.classCounts = new int[2];
+        this.counts = new int[2][this.nbOfBuckets];
 
     }
 
@@ -50,11 +54,8 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
      * @return the hash value of the h'th hash function for string str
      */
     public int hash(String str){
-        int v;
-
-        /* FILL IN HERE */
-
-        return v;
+        int hashcode = MurmurHash.hash32(str, 2020);
+        return (hashcode & 0x7FFFFFFF) % this.nbOfBuckets;//???????
     }
 
     /**
@@ -69,7 +70,17 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
         super.update(labeledText);
 
         /* FILL IN HERE */
+        this.classCounts[labeledText.label]++;
+        Set<Integer> ngramsHashSet = new HashSet <>();
+        int hashcode;
+        for (String ngram: labeledText.text.ngrams){
+            hashcode = hash(ngram);
+            ngramsHashSet.add(hashcode);
+        }
 
+        for(int ngram: ngramsHashSet){
+            counts[labeledText.label][ngram]++ ;
+        }
     }
 
 
@@ -86,9 +97,26 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
     @Override
     public double makePrediction(ParsedText text) {
         double pr = 0;
-
         /* FILL IN HERE */
-
+        Set<Integer> wordSet = new HashSet <>();
+        int hashcode;
+        for (String ngram: text.ngrams){
+            hashcode = hash(ngram);
+            wordSet.add(hashcode);
+        }
+        double prHam = (double) classCounts[0]/this.nbExamplesProcessed;
+        double prSpam = 1 - prHam;
+        double prWordGivenSpam=0;
+        double prWordGivenHam=0;
+        for (int word: wordSet){
+            prWordGivenSpam += Math.log((1.0 + counts[1][word]) / (classCounts[1] + this.nbOfBuckets));
+            prWordGivenHam += Math.log((1.0 + counts[0][word]) / (classCounts[0] + this.nbOfBuckets));
+        }
+        double a = Math.log(prHam)+prWordGivenHam;
+        double b = Math.log(prSpam)+prWordGivenSpam;
+        double prText = a + Math.log(1+Math.exp(b-a));
+        // System.out.println(a);
+        pr = Math.exp(b-prText);
         return pr;
     }
 
@@ -120,7 +148,7 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
             NaiveBayesFeatureHashing nb = new NaiveBayesFeatureHashing(logNbOfBuckets, threshold);
 
             // generate output for the learning curve
-            EvaluationMetric[] evaluationMetrics = new EvaluationMetric[]{new Accuracy()}; //ADD AT LEAST TWO MORE EVALUATION METRICS
+            EvaluationMetric[] evaluationMetrics = new EvaluationMetric[]{new Accuracy(), new Precision(), new Recall(), new Fmeasure()}; //ADD AT LEAST TWO MORE EVALUATION METRICS
             nb.makeLearningCurve(stream, evaluationMetrics, out+".nbfh", reportingPeriod, writeOutAllPredictions);
 
         } catch (FileNotFoundException e) {

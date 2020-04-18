@@ -1,5 +1,6 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,13 +63,16 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
     @Override
     public void update(LabeledText labeledText){
         super.update(labeledText);
-        Set<String> ngrams = labeledText.text.ngrams;
+        // Set<String> ngrams = labeledText.text.ngrams;
+        // System.out.println(ngrams.size());
+        // System.out.println(labeledText.text.ngrams.size());
+
         int c = labeledText.label;
         //update class counts
         this.classCounts[c]++;
         //update feature counts. Since only presence matters, duplicates must be removed.
         // Set does it automatically. Also, Set is (way) faster than List.
-        Set<Integer> hashedNgrams = ngrams.stream().map(this::hash).collect(Collectors.toSet());
+        Set<Integer> hashedNgrams = labeledText.text.ngrams.stream().map(this::hash).collect(Collectors.toSet());
         for(int i: hashedNgrams){
             counts[c][i]++;
         }
@@ -99,10 +103,10 @@ public class NaiveBayesFeatureHashing extends OnlineTextClassifier{
         }
         //log-sum trick. Log(a) = spamSum, Log(b) = hamSum
         // pr = spamSum - (spamSum + Log(1 + e^(hamSum-spamSum))
+        // System.out.println(hamSum);
         pr = -Math.log(1 + Math.exp(hamSum - spamSum));
         return Math.exp(pr);
     }
-
     @Override
     public String getInfo() {
         return(super.getInfo());

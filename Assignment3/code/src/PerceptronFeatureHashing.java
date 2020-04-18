@@ -13,12 +13,11 @@ import java.util.Set;
  * This class is a stub for a perceptron with count-min sketch
  */
 public class PerceptronFeatureHashing extends OnlineTextClassifier{
-
+    private int nbOfBuckets;
     private int logNbOfBuckets;
     private double learningRate;
     private double bias;
     private double[] weights; //weights[i]: The weight for n-grams that hash to value i
-
     /* FILL IN HERE */
 
     /**
@@ -36,9 +35,17 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
     public PerceptronFeatureHashing(int logNbOfBuckets, double learningRate){
         this.logNbOfBuckets=logNbOfBuckets;
         this.learningRate = learningRate;
-        int nbOfBuckets=((int) Math.pow(2, logNbOfBuckets));
-        bias = 0;
-        weights = new double[nbOfBuckets];
+        // this.learningRate = 0.7;
+        this.nbOfBuckets=((int) Math.pow(2, logNbOfBuckets)-1);
+        // this.bias = 0;
+        this.weights = new double[this.nbOfBuckets];
+
+        //
+        this.threshold = 0.5;
+        this.bias = Math.random();
+        for (int i=0; i<this.nbOfBuckets; i++){
+            this.weights[i] = Math.random();
+        }
     }
 
 
@@ -53,11 +60,9 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
      * @return the hash value of the h'th hash function for string str
      */
     private int hash(String str){
-        int v;
-
-        /* FILL IN HERE */
-
-        return v;
+        int hash32 = MurmurHash.hash32(str, 2020);
+        int hashValue =  (Math.abs(hash32)) % this.nbOfBuckets;
+        return hashValue;
     }
 
     /**
@@ -70,10 +75,14 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
     @Override
     public void update(LabeledText labeledText){
         super.update(labeledText);
-
-
         /* FILL IN HERE */
-
+        double prediction = this.makePrediction(labeledText.text);
+        int pr = this.classify(prediction);
+        this.bias = this.bias + this.learningRate * (labeledText.label - pr);
+        for (String ngram: labeledText.text.ngrams){
+            int hashValue = hash(ngram);
+            weights[hashValue] = weights[hashValue] + this.learningRate * (labeledText.label - pr);
+        }
     }
 
 
@@ -90,11 +99,12 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
      */
     @Override
     public double makePrediction(ParsedText text) {
-        double pr = 0;
-
-        /* FILL IN HERE */
-
-        return pr;
+        double pr = 0.0;
+        for (String ngram: text.ngrams){
+            int hashValue = hash(ngram);
+            pr = pr + hashValue*weights[hashValue];
+        }
+        return pr+bias;
     }
 
 
@@ -124,7 +134,8 @@ public class PerceptronFeatureHashing extends OnlineTextClassifier{
             PerceptronFeatureHashing perceptron = new PerceptronFeatureHashing(logNbOfBuckets, learningRate);
 
             // generate output for the learning curve
-            EvaluationMetric[] evaluationMetrics = new EvaluationMetric[]{new Accuracy()}; //ADD AT LEAST TWO MORE EVALUATION METRICS
+            EvaluationMetric[] evaluationMetrics = new EvaluationMetric[]{new Accuracy(), new Precision(),
+                    new Recall(), new Fmeasure() }; // ADD AT LEAST TWO MORE EVALUATION METRICS
             perceptron.makeLearningCurve(stream, evaluationMetrics, out+".pfh", reportingPeriod, writeOutAllPredictions);
 
         } catch (FileNotFoundException e) {

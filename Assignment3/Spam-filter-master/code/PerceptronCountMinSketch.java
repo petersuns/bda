@@ -41,6 +41,7 @@ public class PerceptronCountMinSketch extends OnlineTextClassifier{
         this.nbOfHashes = nbOfHashes;
         this.hashSize = (int)Math.pow(2, logNbOfBuckets) - 1;
         this.learningRate = learningRate;
+        this.learningRate = 0.5;
         this.hashFunctions = new Function[nbOfHashes];
         //hash functions initialization
         Random rand = new Random();

@@ -16,7 +16,10 @@ public class Recall implements EvaluationMetric{
      * @return evaluation evaluate
      */
     @Override public double evaluate(int TP, int FP, int TN, int FN) {
-        return (TP + FN > 0) ? ((double) TP) / (TP + FN) : 0;
+        // return (TP + FN > 0) ? ((double) TP) / (TP + FN) : 0;
+        return ((double) TP)/(TP+FN);
+        // return 2;
+
     }
 
     @Override

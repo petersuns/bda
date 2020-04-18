@@ -19,6 +19,8 @@ public class Precision implements EvaluationMetric{
     @Override
     public double evaluate(int TP, int FP, int TN, int FN) {
         return (TP + FP > 0) ? ((double) TP) / (TP + FP) : 0;
+        // return ((double) TP)/(TP+FP);
+
     }
 
     @Override

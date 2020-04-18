@@ -8,7 +8,7 @@
 
 # Experiment parameters ######################################################
 
-SMALL_DATA=../../data/dataSubset/index_small
+SMALL_DATA=../data/dataSubset/index_small
 SMALL_PERIOD=100
 SMALL_OUT=small
 

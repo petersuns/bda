@@ -1,3 +1,4 @@
+
 /**
  * Copyright (c) DTAI - KU Leuven – All rights reserved.
  * Proprietary, do not copy or distribute without permission.
@@ -6,20 +7,20 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Random;
+import java.util.function.Function;
 
 
 /**
  * This class is a stub for a perceptron with count-min sketch
  */
 public class PerceptronCountMinSketch extends OnlineTextClassifier{
-
+    private int nbOfBuckets;
     private int nbOfHashes;
-    private int logNbOfBuckets;
+    // private int logNbOfBuckets;
     private double learningRate;
-    private double bias;
+    private double[] bias;
     private double[][] weights; // weights[h][i]: The h'th weight estimate for n-grams that hash to value i for the h'th hash function
-
+    private Function<String, Integer>[] hashFunctions;
 
     /* FILL IN HERE */
 
@@ -37,11 +38,29 @@ public class PerceptronCountMinSketch extends OnlineTextClassifier{
      */
     public PerceptronCountMinSketch(int nbOfHashes, int logNbOfBuckets, double learningRate){
         this.nbOfHashes = nbOfHashes;
-        this.logNbOfBuckets=logNbOfBuckets;
+        // this.logNbOfBuckets=logNbOfBuckets;
         this.learningRate = learningRate;
-        this.threshold = 0;
+        // this.learningRate = 0.5;
+
+        this.threshold = 0.0;
 
         /* FILL IN HERE */
+        this.nbOfBuckets = (int)Math.pow(2, logNbOfBuckets) - 1;
+        this.hashFunctions = new Function[nbOfHashes];
+        for(int i = 0; i < nbOfHashes; i++){
+            this.hashFunctions[i] = newHashFunction(i);
+        }
+        this.bias = new double[this.nbOfHashes];
+        this.weights = new double[this.nbOfHashes][this.nbOfBuckets];
+        for (int h = 0; h < this.nbOfHashes; h++) {
+            this.bias[h] = Math.random();
+            for (int i = 0; i < this.nbOfBuckets; i++)
+                this.weights[h][i] = Math.random();
+        }
+    }
+
+    private Function<String, Integer> newHashFunction(int seed){
+        return str ->(Math.abs(MurmurHash.hash32(str, seed)) % this.nbOfBuckets);
     }
 
     /**
@@ -57,11 +76,8 @@ public class PerceptronCountMinSketch extends OnlineTextClassifier{
      * @return the hash value of the h'th hash function for string str
      */
     private int hash(String str, int h){
-        int v;
-
         /* FILL IN HERE */
-
-        return v;
+        return hashFunctions[h].apply(str);
     }
 
     /**
@@ -74,11 +90,16 @@ public class PerceptronCountMinSketch extends OnlineTextClassifier{
     @Override
     public void update(LabeledText labeledText){
         super.update(labeledText);
-
-        /* FILL IN HERE */
-
+        double prediction = this.makePrediction(labeledText.text);
+        int pr = this.classify(prediction);
+        for(int hashFunction = 0; hashFunction < this.nbOfHashes; hashFunction++){
+            this.bias[hashFunction] += this.learningRate * (labeledText.label- pr);
+            for (String ngram: labeledText.text.ngrams){
+                int hashValue = this.hash(ngram, hashFunction);
+                weights[hashFunction][hashValue] += this.learningRate * (labeledText.label - pr);
+            }
+        }
     }
-
     /**
      * Uses the current model to make a prediction about the incoming e-mail belonging to class "1" (spam)
      * If the prediction is positive, then the e-mail is classified as spam.
@@ -92,11 +113,18 @@ public class PerceptronCountMinSketch extends OnlineTextClassifier{
      */
     @Override
     public double makePrediction(ParsedText text) {
-        double pr = 0;
-
-        /* FILL IN HERE */
-
-        return pr;
+         double pr = 0;
+         for (String ngram: text.ngrams){
+             int minWeight = Integer.MAX_VALUE;
+             for (int hashFunction = 0; hashFunction < this.nbOfHashes; hashFunction++){
+                 if (weights[hashFunction][this.hash(ngram, hashFunction)]< minWeight){
+                    minWeight = (int) weights[hashFunction][this.hash(ngram, hashFunction)];
+                 }
+             }
+            pr =pr + minWeight;
+         }
+         Arrays.sort(bias);
+         return pr+bias[0];
     }
 
 
@@ -129,7 +157,7 @@ public class PerceptronCountMinSketch extends OnlineTextClassifier{
             PerceptronCountMinSketch perceptron = new PerceptronCountMinSketch(nbOfHashes ,logNbOfBuckets, learningRate);
 
             // generate output for the learning curve
-            EvaluationMetric[] evaluationMetrics = new EvaluationMetric[]{new Accuracy()}; //ADD AT LEAST TWO MORE EVALUATION METRICS
+            EvaluationMetric[] evaluationMetrics = new EvaluationMetric[]{new Accuracy(), new Precision(), new Recall(), new Fmeasure()}; //ADD AT LEAST TWO MORE EVALUATION METRICS
             perceptron.makeLearningCurve(stream, evaluationMetrics, out+".pcms", reportingPeriod, writeOutAllPredictions);
 
         } catch (FileNotFoundException e) {
